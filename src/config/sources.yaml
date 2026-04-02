@@ -1,0 +1,294 @@
+# ── Substacks ──────────────────────────────────────────────
+
+- name: "Vik's Newsletter"
+  type: substack
+  url: https://www.viksnewsletter.com/feed
+  default_topics: [Tech, AI]
+  # Vikram Sekar — semiconductors, AI infrastructure, business strategy
+
+- name: "Simply Put by Ed Elson"
+  type: substack
+  url: https://edwardelson.substack.com/feed
+  default_topics: [Markets, Tech]
+  # Co-host of Prof G Markets — business, tech, markets commentary
+
+- name: "SemiAnalysis"
+  type: substack
+  url: https://newsletter.semianalysis.com/feed
+  default_topics: [Tech, AI]
+  # Dylan Patel — deep semiconductor and AI hardware analysis
+  # NOTE: most posts are paywalled; free-tier RSS may only include teasers
+
+- name: "Interconnected"
+  type: substack
+  url: https://interconnect.substack.com/feed
+  default_topics: [Tech, AI, Macro / Economics]
+  # Kevin Xu — US-China tech, geopolitics, investing, semiconductors
+
+- name: "Fabricated Knowledge"
+  type: substack
+  url: https://www.fabricatedknowledge.com/feed
+  default_topics: [Tech, Markets]
+  # Doug O'Laughlin — semiconductor industry analysis, investment ideas
+  # NOTE: most posts are paywalled; free-tier RSS may only include teasers
+
+- name: "Chamath Palihapitiya"
+  type: substack
+  url: https://chamath.substack.com/feed
+  default_topics: [Tech, Markets, Startups / VC]
+  # CEO of Social Capital, All-In podcast — tech, investing, macro deep dives
+
+- name: "a16z"
+  type: substack
+  url: https://www.a16z.news/feed
+  default_topics: [Tech, AI, Startups / VC]
+  # Andreessen Horowitz main newsletter
+  # Other a16z Substacks you may also want:
+  #   a16z speedrun: https://speedrun.substack.com/feed (early-stage / founders)
+  #   a16z crypto: check a16z.com/newsletters for current URL
+
+# ── Podcasts ──────────────────────────────────────────────────────────
+# transcript_priority values:
+#   "always"    = full Groq transcription on every episode (automatic)
+#   "on_demand" = description-only by default; user can trigger full transcription
+#   "skip"      = title stub only, no summarisation
+
+# ── ALWAYS — auto-transcribed every run ───────────────────────────────
+
+- name: "Bloomberg Tech"
+  type: podcast
+  url: https://www.omnycontent.com/d/playlist/e73c998e-6e60-432f-8610-ae210140c5b1/41764a4f-fc64-4e11-89ba-ae7c0030ab5e/9caafc41-289c-4115-995d-ae7c0030ab75/podcast.rss
+  default_topics: [Tech, Markets]
+  transcript_priority: always
+  taddy_uuid: 840060aa-58ab-4b9f-bf5f-fd2accf06dea
+
+- name: "Exchanges"
+  type: podcast
+  url: https://feeds.megaphone.fm/GLD9218176758
+  default_topics: [Markets, Macro / Economics]
+  transcript_priority: always
+  taddy_uuid: 9c3414aa-1897-4958-8c57-fd0983b2ebd6
+
+- name: "Lex Fridman Podcast"
+  type: podcast
+  url: https://lexfridman.com/feed/podcast/
+  default_topics: [AI, Tech]
+  transcript_priority: always
+  taddy_uuid: 3d4cc5d9-b305-443f-aaed-7abc16e8239e
+  # Transcripts at lexfridman.com/category/transcripts/
+
+- name: "Dwarkesh Podcast"
+  type: podcast
+  url: https://apple.dwarkesh-podcast.workers.dev/feed.rss
+  default_topics: [AI, Tech]
+  transcript_priority: always
+  taddy_uuid: 9f937338-ef55-471e-a148-9b7791217728
+  # Transcripts on dwarkesh.com per episode page
+
+- name: "Prof G Markets"
+  type: podcast
+  url: https://feeds.megaphone.fm/profgmarkets
+  default_topics: [Markets, Tech]
+  transcript_priority: always
+  taddy_uuid: 2a0afe72-164a-4443-9f5a-558ae6db44f4
+
+- name: "Stratechery"
+  type: podcast
+  url: https://stratechery.passport.online/feed/rss/CW7TkefJGGj8XeQCEkvZc
+  default_topics: [Tech]
+  transcript_priority: always
+  # Not in Taddy. Uses personal Stratechery Passport RSS feed.
+
+# ── ON DEMAND — description-only ingestion; user triggers full transcription ──
+
+- name: "Bloomberg Daybreak: Europe Edition"
+  type: podcast
+  url: https://www.omnycontent.com/d/playlist/e73c998e-6e60-432f-8610-ae210140c5b1/c1b39a51-1327-40f8-ae83-af80014e0b5c/8a433f03-1a96-430e-a3d0-af80014e0b7d/podcast.rss
+  default_topics: [Markets, Macro / Economics]
+  transcript_priority: on_demand
+  taddy_uuid: 5c21ed4d-a754-420d-980c-1b5dc510e639
+
+- name: "FT News Briefing"
+  type: podcast
+  url: https://feeds.acast.com/public/shows/73fe3ede-5c5c-4850-96a8-30db8dbae8bf
+  default_topics: [Markets, Macro / Economics]
+  transcript_priority: on_demand
+  taddy_uuid: 8fb67ffb-b626-469a-b260-9f0346ade07f
+
+- name: "The AI Daily Brief"
+  type: podcast
+  url: https://anchor.fm/s/f7cac464/podcast/rss
+  default_topics: [AI, Tech]
+  transcript_priority: on_demand
+  taddy_uuid: 60fabbea-f51e-4c8b-82b4-1cbd57fe8c02
+  # Hosted by Nathaniel Whittemore — verified via RSS URL match
+
+- name: "Money Stuff: The Podcast"
+  type: podcast
+  url: https://www.omnycontent.com/d/playlist/e73c998e-6e60-432f-8610-ae210140c5b1/ee4336cb-155f-4488-90e0-b1400134e40e/77e6a3a7-290d-4a82-8164-b14001353ef2/podcast.rss
+  default_topics: [Markets]
+  transcript_priority: on_demand
+  taddy_uuid: 3e6b27a2-b703-4543-bf3b-c48aebd1b3e3
+
+- name: "Odd Lots"
+  type: podcast
+  url: https://www.omnycontent.com/d/playlist/e73c998e-6e60-432f-8610-ae210140c5b1/8a94442e-5a74-4fa2-8b8d-ae27003a8d6b/982f5071-765c-403d-969d-ae27003a8d83/podcast.rss
+  default_topics: [Markets, Macro / Economics]
+  transcript_priority: on_demand
+  taddy_uuid: ec8d97a1-5103-40b7-bc28-5f37bf4c6e79
+
+- name: "Hard Fork"
+  type: podcast
+  url: https://feeds.simplecast.com/6HKOhNgS
+  default_topics: [Tech, AI]
+  transcript_priority: on_demand
+  taddy_uuid: ff1d51d4-4fc9-4161-b23b-f0079f6dd5a0
+  # Kevin Roose and Casey Newton (NYT) — weekly tech news and analysis
+
+- name: "Hard Fork AI"
+  type: podcast
+  url: https://rss.art19.com/hard-fork-ai
+  default_topics: [AI, Tech]
+  transcript_priority: on_demand
+  taddy_uuid: fb3c7395-9abe-415e-91f4-24679c1483d9
+  # Short-form AI news from Kevin Roose and Casey Newton (NYT)
+
+- name: "No Priors"
+  type: podcast
+  url: https://feeds.megaphone.fm/nopriors
+  default_topics: [AI, Tech, Startups / VC]
+  transcript_priority: on_demand
+  taddy_uuid: 7740f569-b86e-4eb7-af87-25c7014738fd
+  # Sarah Guo and Elad Gil — AI, startups, technology investing
+
+- name: "Invest Like the Best"
+  type: podcast
+  url: https://feeds.megaphone.fm/CLS2859450455
+  default_topics: [Markets, Startups / VC]
+  transcript_priority: on_demand
+  taddy_uuid: 55f2166e-bc53-4b64-87d6-51ff83ef6224
+  # Transcripts available at colossus.com episode pages (on-demand scraper)
+
+- name: "Business Breakdowns"
+  type: podcast
+  url: https://feeds.megaphone.fm/breakdowns
+  default_topics: [Markets]
+  transcript_priority: on_demand
+  taddy_uuid: 2e9dc2d8-f665-4f48-bbf5-fd29ec04a675
+  # Transcripts available at colossus.com episode pages (on-demand scraper)
+
+- name: "The MAD Podcast with Matt Turck"
+  type: podcast
+  url: https://anchor.fm/s/f2ee4948/podcast/rss
+  default_topics: [AI, Tech, Startups / VC]
+  transcript_priority: on_demand
+  taddy_uuid: 68c3186e-6f07-4a5f-b8d7-9015d2d066be
+
+- name: "ACCESS"
+  type: podcast
+  url: https://feeds.megaphone.fm/VMP5858892209
+  default_topics: [Tech]
+  transcript_priority: on_demand
+  taddy_uuid: 0ba85002-8065-4136-816a-4a88855f1f11
+
+- name: "Another Podcast"
+  type: podcast
+  url: https://feeds.simplecast.com/bZ7U2PEk
+  default_topics: [Tech, AI]
+  transcript_priority: on_demand
+  taddy_uuid: a675b772-ded2-4955-ac76-430ea2b71854
+  # NOTE: deactivated in DB (active=0)
+
+- name: "Decoder with Nilay Patel"
+  type: podcast
+  url: https://feeds.megaphone.fm/recodedecode
+  default_topics: [Tech]
+  transcript_priority: on_demand
+  taddy_uuid: 7418d147-93eb-4de6-8405-2f736b37709b
+
+- name: "The Vergecast"
+  type: podcast
+  url: https://feeds.megaphone.fm/vergecast
+  default_topics: [Tech]
+  transcript_priority: on_demand
+  taddy_uuid: 4bb5a32e-3c92-4669-b8f1-6360ada2cc94
+
+- name: "Cheeky Pint"
+  type: podcast
+  url: https://feeds.transistor.fm/cheeky-pint-with-john-collison
+  default_topics: [Tech, Startups / VC]
+  transcript_priority: on_demand
+  taddy_uuid: fff21cc3-6db3-456b-823e-89d0b4982ab7
+
+- name: "AI + a16z"
+  type: podcast
+  url: https://feeds.simplecast.com/Hb_IuXOo
+  default_topics: [AI, Startups / VC]
+  transcript_priority: on_demand
+  taddy_uuid: bb478300-96d5-4003-8143-050e1d6397e5
+
+- name: "The a16z Show"
+  type: podcast
+  url: https://feeds.simplecast.com/JGE3yC0V
+  default_topics: [Tech, Startups / VC]
+  transcript_priority: on_demand
+  taddy_uuid: f375175c-6dbd-4969-92d0-520d6608fb50
+
+- name: "Pivot"
+  type: podcast
+  url: https://feeds.megaphone.fm/pivot
+  default_topics: [Tech, Markets]
+  transcript_priority: on_demand
+  taddy_uuid: cdddcc43-68f2-4225-bd70-9204cfe734c6
+
+- name: "The Twenty Minute VC (20VC)"
+  type: podcast
+  url: https://rss.libsyn.com/shows/61840/destinations/240976.xml
+  default_topics: [Startups / VC, Tech]
+  transcript_priority: on_demand
+  taddy_uuid: 1e981323-c0dd-4e94-a605-8cc1614fbd59
+
+- name: "Unhedged"
+  type: podcast
+  url: https://feeds.acast.com/public/shows/6478a825654260001190a7cb
+  default_topics: [Markets]
+  transcript_priority: on_demand
+  taddy_uuid: 2fa7a7b3-9779-4068-9d32-c24066b24bac
+  # FT podcast — verified via RSS URL match (old UUID pointed to unrelated Frank Troise show)
+
+- name: "Behind the Money"
+  type: podcast
+  url: https://feeds.acast.com/public/shows/6a13c15d-181a-4a2e-a662-739d0e7f731a
+  default_topics: [Markets, Macro / Economics]
+  transcript_priority: on_demand
+  taddy_uuid: 6a578332-d5ea-49ca-b019-9be86e8bc47f
+
+- name: "In Good Company with Nicolai Tangen"
+  type: podcast
+  url: https://feeds.acast.com/public/shows/622618c7057f3400120d15db
+  default_topics: [Markets, Macro / Economics]
+  transcript_priority: on_demand
+  taddy_uuid: 6b77220b-b464-4f32-aceb-47596e801d88
+
+- name: "The Markets"
+  type: podcast
+  url: https://feeds.megaphone.fm/GLD9322922848
+  default_topics: [Markets]
+  transcript_priority: on_demand
+  taddy_uuid: fb4e1d1b-0fee-4e74-a219-bd0460a0c0e6
+
+- name: "Thoughts on the Market"
+  type: podcast
+  url: https://rss.art19.com/thoughts-on-the-market
+  default_topics: [Markets]
+  transcript_priority: on_demand
+  taddy_uuid: 2b388ab5-f258-4234-ac6e-ff21c56b171c
+
+# ── MANUAL HANDLING ───────────────────────────────────────────────────
+
+- name: "Forward Future Interviews"
+  type: podcast
+  url: https://forwardfuture.ai/interviews
+  default_topics: [AI, Tech]
+  transcript_priority: skip
+  # Not in Taddy. No standard RSS feed. Needs website scraper for forwardfuture.ai.

@@ -1,0 +1,14 @@
+
+Scraper                           Result     Words  Notes
+--------------------------------------------------------------------------------
+Lex Fridman                       OK         23765  'This is a transcript of Lex Fridman Podcast #494 with Jensen Huang.     The time'
+Dwarkesh Podcast                  OK         12689  'We begin the episode with the absolutely ingenious and surprising way in which K'
+Cheeky Pint                       OK         11481  'Christina Cacioppo, founder and CEO of Vanta, joins the pub to discuss building '
+Decoder with Nilay Patel          OK         11788  'Today, I’m talking with Todd McKinnon, who is co-founder and CEO of Okta, a plat'
+Exchanges at GS                   OK          7297  "Goldman Sachs Exchanges The Business Builder: New Mountain Capital's Steve Klins"
+The Markets (GS)                  OK          2214  'Goldman Sachs The Markets “The Market is Fragile” : John Storey on Finding Oppor'
+Thoughts on the Market            OK          2106  'View Audio Transcript Transcript Andrew Sheets: Welcome to Thoughts on the Marke'
+Invest Like the Best (Colossus)   OK           640  "Invest Like the Best Episode 388 The Art of Living Well Hosted by Patrick O'Shau"
+Business Breakdowns (Colossus)    SHORT        438  'Business Breakdowns Episode 208 Apollo: Connoisseurs of Complexity Hosted by Mat'
+
+--- Summary ---

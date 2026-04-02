@@ -1,0 +1,35 @@
+# Secrets and local config
+.env
+.env.*
+CLAUDE.local.md
+
+# Python
+__pycache__/
+*.pyc
+.mypy_cache/
+.pytest_cache/
+
+# Data and logs (contain PII / large files)
+data/
+logs/
+
+# Audio downloads
+*.mp3
+*.wav
+*.m4a
+
+# Database files
+*.db
+
+# HTTP cache
+.requests_cache
+
+# Frontend build artefacts and dependencies
+frontend/dist/
+frontend/node_modules/
+node_modules/
+
+# Spotipy OAuth token cache
+.cache
+.cache-*
+scripts/.spotify_cache

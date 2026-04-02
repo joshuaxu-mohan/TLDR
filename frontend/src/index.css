@@ -1,0 +1,53 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    background-color: #131313;
+    color: #E5E2E1;
+    font-family: 'DM Sans', sans-serif;
+  }
+
+  ::selection {
+    background-color: #001A1F;
+    color: #00E5FF;
+  }
+
+  /* Custom scrollbar — 4px, dark track, muted thumb */
+  ::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+  }
+  ::-webkit-scrollbar-track {
+    background: #131313;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #353534;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: #474747;
+  }
+}
+
+@layer utilities {
+  /* Hide scrollbar for horizontal scroll areas (filter bar, tag lists) */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Material Symbols — font-family MUST be set here for ligature glyphs to render */
+  .material-symbols-outlined {
+    font-family: 'Material Symbols Outlined';
+    font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+    font-size: 18px;
+    line-height: 1;
+    vertical-align: middle;
+    display: inline-block;
+    user-select: none;
+  }
+}

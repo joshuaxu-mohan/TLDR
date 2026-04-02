@@ -1,0 +1,272 @@
+[
+  {
+    "search_term": "Bloomberg Tech",
+    "matched_name": "Bloomberg Tech",
+    "uuid": "840060aa-58ab-4b9f-bf5f-fd2accf06dea",
+    "episode": "Micron Warns of Heavy Spending Amid Memory Crunch",
+    "transcript_status": "COMPLETED",
+    "has_audio": true,
+    "duration_mins": 36.9
+  },
+  {
+    "search_term": "Bloomberg Daybreak Europe Edition",
+    "matched_name": "Bloomberg Daybreak: Europe Edition",
+    "uuid": "5c21ed4d-a754-420d-980c-1b5dc510e639",
+    "episode": "Bloomberg Daybreak: Mortgage Rates, Denmark Election, BYD Earnings",
+    "transcript_status": "COMPLETED",
+    "has_audio": true,
+    "duration_mins": 38.6
+  },
+  {
+    "search_term": "No Priors",
+    "matched_name": "No Priors AI",
+    "uuid": "fb3c7395-9abe-415e-91f4-24679c1483d9",
+    "episode": "AI Web Traffic to Exceed Humans by 2027, and Rogue AI Agents",
+    "transcript_status": "COMPLETED",
+    "has_audio": true,
+    "duration_mins": 14.7
+  },
+  {
+    "search_term": "The MAD Podcast with Matt Turck",
+    "matched_name": "The MAD Podcast with Matt Turck",
+    "uuid": "68c3186e-6f07-4a5f-b8d7-9015d2d066be",
+    "episode": "Benedict Evans: OpenAI\u2019s Moat Problem & the Future of Software",
+    "transcript_status": "NOT_TRANSCRIBING",
+    "has_audio": true,
+    "duration_mins": 61.1
+  },
+  {
+    "search_term": "The AI Daily Brief",
+    "matched_name": "The AI in Media Daily Brief",
+    "uuid": "f42d85dd-826e-4fba-a127-724a71cb4e70",
+    "episode": "EU: Resilient journalism crucial in Europe\u2019s defence and preparedness agenda ",
+    "transcript_status": "COMPLETED",
+    "has_audio": true,
+    "duration_mins": 3.6
+  },
+  {
+    "search_term": "Forward Future Interviews",
+    "matched_name": "Future Forward",
+    "uuid": "55c5ce35-d663-4e11-800d-1108bccddc70",
+    "episode": "Future Forward #16: Talking to your CRM, field realities and finding Product-Market fit in AI with Nicolas Christiaen",
+    "transcript_status": "NOT_TRANSCRIBING",
+    "has_audio": true,
+    "duration_mins": 43.0
+  },
+  {
+    "search_term": "Cheeky Pint",
+    "matched_name": "Cheeky Pint",
+    "uuid": "fff21cc3-6db3-456b-823e-89d0b4982ab7",
+    "episode": "Creating prediction markets (and suing the CFTC) with Tarek Mansour and Luana Lopes Lara",
+    "transcript_status": "NOT_TRANSCRIBING",
+    "has_audio": true,
+    "duration_mins": 76.5
+  },
+  {
+    "search_term": "Lex Fridman Podcast",
+    "matched_name": "Lex Fridman Podcast",
+    "uuid": "3d4cc5d9-b305-443f-aaed-7abc16e8239e",
+    "episode": "#493 \u2013 Jeff Kaplan: World of Warcraft, Overwatch, Blizzard, and Future of Gaming",
+    "transcript_status": "COMPLETED",
+    "has_audio": true,
+    "duration_mins": null
+  },
+  {
+    "search_term": "The Vergecast",
+    "matched_name": "The Vergecast",
+    "uuid": "4bb5a32e-3c92-4669-b8f1-6360ada2cc94",
+    "episode": "Why people really hate AI",
+    "transcript_status": "COMPLETED",
+    "has_audio": true,
+    "duration_mins": 105.7
+  },
+  {
+    "search_term": "Dwarkesh Podcast",
+    "matched_name": "Dwarkesh Podcast",
+    "uuid": "9f937338-ef55-471e-a148-9b7791217728",
+    "episode": "Terence Tao \u2013 Kepler, Newton, and the true nature of mathematical discovery",
+    "transcript_status": "COMPLETED",
+    "has_audio": true,
+    "duration_mins": 83.7
+  },
+  {
+    "search_term": "ACCESS",
+    "matched_name": "ACCESS",
+    "uuid": "0ba85002-8065-4136-816a-4a88855f1f11",
+    "episode": "ACCESS S:VIN February 2026",
+    "transcript_status": "NOT_TRANSCRIBING",
+    "has_audio": true,
+    "duration_mins": 31.0
+  },
+  {
+    "search_term": "Invest Like the Best",
+    "matched_name": "Invest Like The Best",
+    "uuid": "55f2166e-bc53-4b64-87d6-51ff83ef6224",
+    "episode": "STI 13:  Billionaire Investor Ray Dalio\u2019s How the Economy Works.",
+    "transcript_status": "NOT_TRANSCRIBING",
+    "has_audio": true,
+    "duration_mins": 37.6
+  },
+  {
+    "search_term": "Another Podcast",
+    "matched_name": "Another Podcast",
+    "uuid": "a675b772-ded2-4955-ac76-430ea2b71854",
+    "episode": "The end of the network effect",
+    "transcript_status": "NOT_TRANSCRIBING",
+    "has_audio": true,
+    "duration_mins": 26.0
+  },
+  {
+    "search_term": "AI + a16z",
+    "matched_name": "AI + a16z",
+    "uuid": "bb478300-96d5-4003-8143-050e1d6397e5",
+    "episode": "OpenClaw: Why the Internet Isn't Built for AI Agents",
+    "transcript_status": "NOT_TRANSCRIBING",
+    "has_audio": true,
+    "duration_mins": 47.2
+  },
+  {
+    "search_term": "Stratechery",
+    "matched_name": "NOT FOUND",
+    "uuid": null,
+    "episode": null,
+    "transcript_status": "N/A",
+    "has_audio": false,
+    "duration_mins": null
+  },
+  {
+    "search_term": "Business Breakdowns",
+    "matched_name": "Business Breakdowns",
+    "uuid": "2e9dc2d8-f665-4f48-bbf5-fd29ec04a675",
+    "episode": "Apollo: Connoisseurs of Complexity - [Business Breakdowns, REPLAY]",
+    "transcript_status": "NOT_TRANSCRIBING",
+    "has_audio": true,
+    "duration_mins": 74.7
+  },
+  {
+    "search_term": "In Good Company with Nicolai Tangen",
+    "matched_name": "In Good Company with Nicolai Tangen",
+    "uuid": "6b77220b-b464-4f32-aceb-47596e801d88",
+    "episode": "HIGHLIGHTS: Brian Armstrong - CEO of Coinbase",
+    "transcript_status": "COMPLETED",
+    "has_audio": true,
+    "duration_mins": 10.3
+  },
+  {
+    "search_term": "The a16z Show",
+    "matched_name": "The a16z Show",
+    "uuid": "f375175c-6dbd-4969-92d0-520d6608fb50",
+    "episode": "Inside Palantir: Building Software That Matters with Shyam Sankar",
+    "transcript_status": "COMPLETED",
+    "has_audio": true,
+    "duration_mins": 54.9
+  },
+  {
+    "search_term": "Money Stuff The Podcast",
+    "matched_name": "Money Stuff: The Podcast",
+    "uuid": "3e6b27a2-b703-4543-bf3b-c48aebd1b3e3",
+    "episode": "Boaz Weinstein",
+    "transcript_status": "COMPLETED",
+    "has_audio": true,
+    "duration_mins": 49.5
+  },
+  {
+    "search_term": "Pivot",
+    "matched_name": "Pivot",
+    "uuid": "cdddcc43-68f2-4225-bd70-9204cfe734c6",
+    "episode": "Trump Bullies Allies, Powell Stays Put, and Kalshi Faces Criminal Charges",
+    "transcript_status": "COMPLETED",
+    "has_audio": true,
+    "duration_mins": 75.7
+  },
+  {
+    "search_term": "Odd Lots",
+    "matched_name": "Odd Lots",
+    "uuid": "ec8d97a1-5103-40b7-bc28-5f37bf4c6e79",
+    "episode": "What the Iran War Means for Dubai's Luxury Boom",
+    "transcript_status": "COMPLETED",
+    "has_audio": true,
+    "duration_mins": 55.2
+  },
+  {
+    "search_term": "Decoder with Nilay Patel",
+    "matched_name": "Decoder with Nilay Patel",
+    "uuid": "7418d147-93eb-4de6-8405-2f736b37709b",
+    "episode": "Paramount's $110 billion Warner Bros. gamble",
+    "transcript_status": "COMPLETED",
+    "has_audio": true,
+    "duration_mins": 48.1
+  },
+  {
+    "search_term": "The Twenty Minute VC",
+    "matched_name": "The Twenty Minute VC (20VC): Venture Capital | Startup Funding | The Pitch",
+    "uuid": "1e981323-c0dd-4e94-a605-8cc1614fbd59",
+    "episode": "20VC: Inside Anduril's $20BN Army Contract & Why Anduril Must Go Public | Why 99% of Drone Companies Will Die | Why There is Never an Ethical Question of How Anduril Products are Used with Matthew Steckman, President @ Anduril",
+    "transcript_status": "COMPLETED",
+    "has_audio": true,
+    "duration_mins": 53.9
+  },
+  {
+    "search_term": "Unhedged",
+    "matched_name": "UnHedged",
+    "uuid": "18fb90c2-cdb7-4891-bcdc-eda68b32be33",
+    "episode": "What next for APAC FinTech Venture Capital?",
+    "transcript_status": "NOT_TRANSCRIBING",
+    "has_audio": true,
+    "duration_mins": null
+  },
+  {
+    "search_term": "Behind the Money",
+    "matched_name": "Behind the Money",
+    "uuid": "6a578332-d5ea-49ca-b019-9be86e8bc47f",
+    "episode": "Best of: How the diamond industry lost its sparkle",
+    "transcript_status": "COMPLETED",
+    "has_audio": true,
+    "duration_mins": 23.5
+  },
+  {
+    "search_term": "Prof G Markets",
+    "matched_name": "Prof G Markets",
+    "uuid": "2a0afe72-164a-4443-9f5a-558ae6db44f4",
+    "episode": "The Next Inflation Wave Is Already Here",
+    "transcript_status": "COMPLETED",
+    "has_audio": true,
+    "duration_mins": 75.5
+  },
+  {
+    "search_term": "The Markets Goldman Sachs",
+    "matched_name": "The Markets",
+    "uuid": "fb4e1d1b-0fee-4e74-a219-bd0460a0c0e6",
+    "episode": "\"The Market Is Fragile\"",
+    "transcript_status": "COMPLETED",
+    "has_audio": true,
+    "duration_mins": 10.5
+  },
+  {
+    "search_term": "Thoughts on the Market",
+    "matched_name": "Thoughts on the Market",
+    "uuid": "2b388ab5-f258-4234-ac6e-ff21c56b171c",
+    "episode": "\u2018March Madness\u2019 for Markets Too",
+    "transcript_status": "COMPLETED",
+    "has_audio": true,
+    "duration_mins": 4.1
+  },
+  {
+    "search_term": "FT News Briefing",
+    "matched_name": "FT News Briefing",
+    "uuid": "8fb67ffb-b626-469a-b260-9f0346ade07f",
+    "episode": "Strait of Hormuz crisis poses fresh threat to global food, energy",
+    "transcript_status": "COMPLETED",
+    "has_audio": true,
+    "duration_mins": 12.2
+  },
+  {
+    "search_term": "Exchanges Goldman Sachs",
+    "matched_name": "Exchanges",
+    "uuid": "9c3414aa-1897-4958-8c57-fd0983b2ebd6",
+    "episode": "Lloyd Blankfein on His Memoir Streetwise, Risk Management and Leadership",
+    "transcript_status": "COMPLETED",
+    "has_audio": true,
+    "duration_mins": 30.5
+  }
+]

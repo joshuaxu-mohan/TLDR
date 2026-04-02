@@ -1,0 +1,18 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "FastAPI backend",
+      "runtimeExecutable": "C:\\Users\\xujos\\AppData\\Local\\Python\\bin\\python.exe",
+      "runtimeArgs": ["-m", "uvicorn", "src.delivery.api:app"],
+      "port": 8000
+    },
+    {
+      "name": "React frontend (Vite)",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev"],
+      "cwd": "frontend",
+      "port": 5173
+    }
+  ]
+}

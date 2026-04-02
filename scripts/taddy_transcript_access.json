@@ -1,0 +1,205 @@
+[
+  {
+    "show": "Bloomberg Tech",
+    "taddy_status": "COMPLETED",
+    "free_transcript": true,
+    "word_count": 6848,
+    "has_audio": true
+  },
+  {
+    "show": "Bloomberg Daybreak Europe Edition",
+    "taddy_status": "COMPLETED",
+    "free_transcript": true,
+    "word_count": 4528,
+    "has_audio": true
+  },
+  {
+    "show": "No Priors",
+    "taddy_status": "COMPLETED",
+    "free_transcript": false,
+    "word_count": null,
+    "has_audio": true
+  },
+  {
+    "show": "The MAD Podcast with Matt Turck",
+    "taddy_status": "NOT_TRANSCRIBING",
+    "free_transcript": false,
+    "word_count": null,
+    "has_audio": true
+  },
+  {
+    "show": "The AI Daily Brief",
+    "taddy_status": "COMPLETED",
+    "free_transcript": true,
+    "word_count": 459,
+    "has_audio": true
+  },
+  {
+    "show": "Forward Future Interviews",
+    "taddy_status": "NOT_TRANSCRIBING",
+    "free_transcript": false,
+    "word_count": null,
+    "has_audio": true
+  },
+  {
+    "show": "Cheeky Pint",
+    "taddy_status": "NOT_TRANSCRIBING",
+    "free_transcript": false,
+    "word_count": null,
+    "has_audio": true
+  },
+  {
+    "show": "Lex Fridman Podcast",
+    "taddy_status": "COMPLETED",
+    "free_transcript": false,
+    "word_count": null,
+    "has_audio": true
+  },
+  {
+    "show": "The Vergecast",
+    "taddy_status": "COMPLETED",
+    "free_transcript": false,
+    "word_count": null,
+    "has_audio": true
+  },
+  {
+    "show": "Dwarkesh Podcast",
+    "taddy_status": "COMPLETED",
+    "free_transcript": false,
+    "word_count": null,
+    "has_audio": true
+  },
+  {
+    "show": "ACCESS",
+    "taddy_status": "NOT_TRANSCRIBING",
+    "free_transcript": false,
+    "word_count": null,
+    "has_audio": true
+  },
+  {
+    "show": "Invest Like the Best",
+    "taddy_status": "NOT_TRANSCRIBING",
+    "free_transcript": false,
+    "word_count": null,
+    "has_audio": true
+  },
+  {
+    "show": "Another Podcast",
+    "taddy_status": "NOT_TRANSCRIBING",
+    "free_transcript": false,
+    "word_count": null,
+    "has_audio": true
+  },
+  {
+    "show": "AI + a16z",
+    "taddy_status": "NOT_TRANSCRIBING",
+    "free_transcript": false,
+    "word_count": null,
+    "has_audio": true
+  },
+  {
+    "show": "Business Breakdowns",
+    "taddy_status": "NOT_TRANSCRIBING",
+    "free_transcript": false,
+    "word_count": null,
+    "has_audio": true
+  },
+  {
+    "show": "In Good Company with Nicolai Tangen",
+    "taddy_status": "COMPLETED",
+    "free_transcript": false,
+    "word_count": null,
+    "has_audio": true
+  },
+  {
+    "show": "The a16z Show",
+    "taddy_status": "COMPLETED",
+    "free_transcript": false,
+    "word_count": null,
+    "has_audio": true
+  },
+  {
+    "show": "Money Stuff The Podcast",
+    "taddy_status": "COMPLETED",
+    "free_transcript": true,
+    "word_count": 10397,
+    "has_audio": true
+  },
+  {
+    "show": "Pivot",
+    "taddy_status": "COMPLETED",
+    "free_transcript": false,
+    "word_count": null,
+    "has_audio": true
+  },
+  {
+    "show": "Odd Lots",
+    "taddy_status": "COMPLETED",
+    "free_transcript": true,
+    "word_count": 9750,
+    "has_audio": true
+  },
+  {
+    "show": "Decoder with Nilay Patel",
+    "taddy_status": "COMPLETED",
+    "free_transcript": false,
+    "word_count": null,
+    "has_audio": true
+  },
+  {
+    "show": "The Twenty Minute VC",
+    "taddy_status": "COMPLETED",
+    "free_transcript": false,
+    "word_count": null,
+    "has_audio": true
+  },
+  {
+    "show": "Unhedged",
+    "taddy_status": "NOT_TRANSCRIBING",
+    "free_transcript": false,
+    "word_count": null,
+    "has_audio": true
+  },
+  {
+    "show": "Behind the Money",
+    "taddy_status": "COMPLETED",
+    "free_transcript": false,
+    "word_count": null,
+    "has_audio": true
+  },
+  {
+    "show": "Prof G Markets",
+    "taddy_status": "COMPLETED",
+    "free_transcript": false,
+    "word_count": null,
+    "has_audio": true
+  },
+  {
+    "show": "The Markets Goldman Sachs",
+    "taddy_status": "COMPLETED",
+    "free_transcript": false,
+    "word_count": null,
+    "has_audio": true
+  },
+  {
+    "show": "Thoughts on the Market",
+    "taddy_status": "COMPLETED",
+    "free_transcript": false,
+    "word_count": null,
+    "has_audio": true
+  },
+  {
+    "show": "FT News Briefing",
+    "taddy_status": "COMPLETED",
+    "free_transcript": false,
+    "word_count": null,
+    "has_audio": true
+  },
+  {
+    "show": "Exchanges Goldman Sachs",
+    "taddy_status": "COMPLETED",
+    "free_transcript": false,
+    "word_count": null,
+    "has_audio": true
+  }
+]

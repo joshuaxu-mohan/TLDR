@@ -1,0 +1,55 @@
+{
+  "env": {
+    "MAX_THINKING_TOKENS": "10000",
+    "CLAUDE_AUTOCOMPACT_PCT_OVERRIDE": "75",
+    "CLAUDE_CODE_SUBAGENT_MODEL": "haiku"
+  },
+  "permissions": {
+    "allow": [
+      "Bash(C:UsersxujosAppDataLocalPythonbinpython.exe scripts/search_taddy_uuids.py)",
+      "Bash(python scripts/search_taddy_uuids.py)",
+      "Bash(python -c \"import os; from dotenv import load_dotenv; load_dotenv\\(\\); print\\(''USER_ID set:'', bool\\(os.environ.get\\(''TADDY_USER_ID''\\)\\)\\); print\\(''API_KEY set:'', bool\\(os.environ.get\\(''TADDY_API_KEY''\\)\\)\\)\")",
+      "Bash(python -c \":*)",
+      "mcp__Claude_Preview__preview_start",
+      "Bash(python -c \"from src.storage import db; print\\(''''db ok''''\\)\")",
+      "Bash(python -c \"from src.config import loader; print\\(''''loader ok''''\\)\")",
+      "Bash(python -c \"from src.delivery import api; print\\(''''api ok''''\\)\")",
+      "Bash(python -c \"from src.summariser import summariser; print\\(''''summariser ok''''\\)\")",
+      "Bash(python -c \"from src import main; print\\(''''main ok''''\\)\")",
+      "WebFetch(domain:www.goldmansachs.com)",
+      "mcp__Windows-MCP__Scrape",
+      "Bash(curl -s --max-time 30 -H \"Referer: https://www.goldmansachs.com/\" -H \"User-Agent: Mozilla/5.0 \\(Windows NT 10.0; Win64; x64\\) AppleWebKit/537.36\" \"https://www.goldmansachs.com/sitemap-1.xml\")",
+      "Bash(for url:*)",
+      "Bash(do echo:*)",
+      "Bash(curl -s -I --max-time 15 -H \"Referer: https://www.goldmansachs.com/\" -H \"User-Agent: Mozilla/5.0 \\(Windows NT 10.0; Win64; x64\\) AppleWebKit/537.36\" \"https://www.goldmansachs.com/pdfs/insights/goldman-sachs-talks/lloyd-blankfein/transcript.pdf\")",
+      "Bash(curl -s -o /dev/null -w \"URL1: %{http_code} | content-type: %{content_type} | redirect: %{redirect_url}\\\\n\" --max-time 15 -L \"https://www.goldmansachs.com/pdfs/insights/podcasts/episodes/goldman-sachs-exchanges-lloyd-blankfein-on-his-memoir-streetwise-risk-management-and-leadership/transcript.pdf\")",
+      "Bash(curl -s -o /dev/null -w \"URL2: %{http_code} | content-type: %{content_type} | redirect: %{redirect_url}\\\\n\" --max-time 15 -L \"https://www.goldmansachs.com/pdfs/insights/podcasts/episodes/lloyd-blankfein-streetwise-risk-management-and-leadership/transcript.pdf\")",
+      "Bash(curl -s -o /dev/null -w \"URL3: %{http_code} | content-type: %{content_type} | redirect: %{redirect_url}\\\\n\" --max-time 15 -L \"https://www.goldmansachs.com/pdfs/insights/podcasts/episodes/lloyd-blankfein-memoir-streetwise/transcript.pdf\")",
+      "Bash(curl -s -o /dev/null -w \"URL4: %{http_code} | content-type: %{content_type} | redirect: %{redirect_url}\\\\n\" --max-time 15 -L \"https://www.goldmansachs.com/pdfs/insights/goldman-sachs-exchanges/lloyd-blankfein-memoir-streetwise-risk-management-and-leadership/transcript.pdf\")",
+      "Bash(curl -s -o /dev/null -w \"URL1 HEAD: %{http_code} | content-type: %{content_type}\\\\n\" --max-time 15 -X HEAD \"https://www.goldmansachs.com/pdfs/insights/podcasts/episodes/goldman-sachs-exchanges-lloyd-blankfein-on-his-memoir-streetwise-risk-management-and-leadership/transcript.pdf\")",
+      "Bash(curl -s -o /dev/null -w \"URL2 HEAD: %{http_code} | content-type: %{content_type}\\\\n\" --max-time 15 -X HEAD \"https://www.goldmansachs.com/pdfs/insights/podcasts/episodes/lloyd-blankfein-streetwise-risk-management-and-leadership/transcript.pdf\")",
+      "Bash(curl -s -o /dev/null -w \"URL3 HEAD: %{http_code} | content-type: %{content_type}\\\\n\" --max-time 15 -X HEAD \"https://www.goldmansachs.com/pdfs/insights/podcasts/episodes/lloyd-blankfein-memoir-streetwise/transcript.pdf\")",
+      "Bash(curl -s -o /dev/null -w \"URL4 HEAD: %{http_code} | content-type: %{content_type}\\\\n\" --max-time 15 -X HEAD \"https://www.goldmansachs.com/pdfs/insights/goldman-sachs-exchanges/lloyd-blankfein-memoir-streetwise-risk-management-and-leadership/transcript.pdf\")",
+      "Bash(curl -s -o /dev/null -w \"URL1: status=%{http_code} | final_url=%{url_effective} | content-type=%{content_type}\\\\n\" --max-time 15 -X HEAD -L \"https://www.goldmansachs.com/pdfs/insights/podcasts/episodes/goldman-sachs-exchanges-lloyd-blankfein-on-his-memoir-streetwise-risk-management-and-leadership/transcript.pdf\")",
+      "Bash(curl -s -o /dev/null -w \"URL2: status=%{http_code} | final_url=%{url_effective} | content-type=%{content_type}\\\\n\" --max-time 15 -X HEAD -L \"https://www.goldmansachs.com/pdfs/insights/podcasts/episodes/lloyd-blankfein-streetwise-risk-management-and-leadership/transcript.pdf\")",
+      "Bash(curl -s -o /dev/null -w \"URL3: status=%{http_code} | final_url=%{url_effective} | content-type=%{content_type}\\\\n\" --max-time 15 -X HEAD -L \"https://www.goldmansachs.com/pdfs/insights/podcasts/episodes/lloyd-blankfein-memoir-streetwise/transcript.pdf\")",
+      "Bash(curl -s -o /dev/null -w \"URL4: status=%{http_code} | final_url=%{url_effective} | content-type=%{content_type}\\\\n\" --max-time 15 -X HEAD -L \"https://www.goldmansachs.com/pdfs/insights/goldman-sachs-exchanges/lloyd-blankfein-memoir-streetwise-risk-management-and-leadership/transcript.pdf\")",
+      "Bash(C:UsersxujosAppDataLocalPythonbinpython.exe -c \":*)",
+      "Read(//mnt/c/**)",
+      "Bash(python3 -c \":*)",
+      "mcp__Windows-MCP__PowerShell",
+      "Bash(npm run:*)",
+      "Bash(cmd /c \"cd C:\\\\Daily\\\\frontend && npm run build\")",
+      "Bash(cmd /c \"cd /d C:\\\\Daily\\\\frontend && npm run build 2>&1\")",
+      "mcp__Desktop_Commander__start_process",
+      "Bash(dir \"C:\\\\Daily\\\\frontend\\\\src\\\\components\" /b)"
+    ],
+    "deny": [
+      "Read(./node_modules/**)",
+      "Read(./.git/**)",
+      "Read(./frontend/dist/**)",
+      "Read(./.env)",
+      "Read(./.env.*)"
+    ]
+  }
+}
