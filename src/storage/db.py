@@ -123,25 +123,10 @@ def _run_migrations(conn: sqlite3.Connection) -> None:
         except sqlite3.OperationalError:
             pass
 
-    # Flag backlog articles from newly upgraded sources for Groq transcription.
-    # Idempotent: articles already transcribed (content >= 2500 chars) or
-    # already queued (needs_transcription = 1) are not touched.
-    _UPGRADED_SOURCES = (
-        'ACCESS', 'AI + a16z', 'Behind the Money', 'Cheeky Pint',
-        'Decoder with Nilay Patel', 'Money Stuff: The Podcast', 'Odd Lots',
-        'Pivot', 'Prof G Markets', 'The AI Daily Brief',
-        'The MAD Podcast with Matt Turck', 'The Vergecast', 'The a16z Show', 'Unhedged',
+    conn.execute(
+        "UPDATE articles SET needs_transcription = 0 "
+        "WHERE source_id IN (SELECT id FROM sources WHERE transcript_priority != 'always')"
     )
-    try:
-        ph = ",".join("?" * len(_UPGRADED_SOURCES))
-        conn.execute(
-            f"UPDATE articles SET needs_transcription = 1 "
-            f"WHERE source_id IN (SELECT id FROM sources WHERE name IN ({ph})) "
-            f"AND needs_transcription = 0 AND (content IS NULL OR length(content) < 2500)",
-            list(_UPGRADED_SOURCES),
-        )
-    except sqlite3.OperationalError:
-        pass
 
     # Remove legacy 'all'-category digests generated before the news/informative
     # split was introduced.  These rows are orphaned and no longer queried.
