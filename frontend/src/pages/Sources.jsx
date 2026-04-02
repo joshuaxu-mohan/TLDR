@@ -860,14 +860,15 @@ function SourceTableRow({ source, onUpdated, onDeleted }) {
 // ---------------------------------------------------------------------------
 
 function SourceCard({ source, onUpdated, onDeleted }) {
-  const [editing,         setEditing]         = useState(false)
-  const [topics,          setTopics]          = useState(topicsFromString(source.default_topics))
-  const [saving,          setSaving]          = useState(false)
-  const [confirmDelete,   setConfirmDelete]   = useState(false)
-  const [deleting,        setDeleting]        = useState(false)
-  const [toggling,        setToggling]        = useState(false)
-  const [togglingPriority,setTogglingPriority]= useState(false)
-  const [error,           setError]           = useState(null)
+  const [editing,          setEditing]          = useState(false)
+  const [topics,           setTopics]           = useState(topicsFromString(source.default_topics))
+  const [saving,           setSaving]           = useState(false)
+  const [confirmDelete,    setConfirmDelete]    = useState(false)
+  const [deleting,         setDeleting]         = useState(false)
+  const [toggling,         setToggling]         = useState(false)
+  const [togglingPriority, setTogglingPriority] = useState(false)
+  const [togglingCategory, setTogglingCategory] = useState(false)
+  const [error,            setError]            = useState(null)
 
   async function handleToggleActive() {
     setToggling(true)
@@ -885,6 +886,15 @@ function SourceCard({ source, onUpdated, onDeleted }) {
       onUpdated(await updateSource(source.id, { transcript_priority: next }))
     } catch (err) { setError(err.message) }
     finally { setTogglingPriority(false) }
+  }
+
+  async function handleToggleCategory() {
+    setTogglingCategory(true)
+    const next = source.content_category === 'news' ? 'informative' : 'news'
+    try {
+      onUpdated(await updateSource(source.id, { content_category: next }))
+    } catch (err) { setError(err.message) }
+    finally { setTogglingCategory(false) }
   }
 
   async function handleSaveTopics() {
@@ -939,6 +949,18 @@ function SourceCard({ source, onUpdated, onDeleted }) {
                 {source.transcript_priority === 'always' ? 'AUTO' : 'ON DEMAND'}
               </button>
             )}
+            <button
+              type="button"
+              onClick={handleToggleCategory}
+              disabled={togglingCategory}
+              className={`font-label text-[9px] uppercase tracking-wider border px-1.5 py-0.5 transition-colors disabled:opacity-50 ${
+                source.content_category === 'news'
+                  ? 'border-secondary/40 text-secondary'
+                  : 'border-outline-variant text-on-surface-variant hover:border-secondary hover:text-secondary'
+              }`}
+            >
+              {source.content_category === 'news' ? 'NEWS' : 'INFORMATIVE'}
+            </button>
           </div>
           {topicsFromString(source.default_topics).length > 0 && (
             <div className="flex flex-wrap gap-2 mt-1.5">

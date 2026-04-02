@@ -565,7 +565,7 @@ def _add_article_links(text: str, rows: list) -> str:
         src_key   = _normalise_name(row["source_name"])
         title_key = row["title"].lower().strip()
         if src_key not in source_map:
-            source_map[src_key] = (row["id"], row.get("source_type") or "")
+            source_map[src_key] = (row["id"], row["source_type"] if "source_type" in row.keys() else "")
         if title_key not in title_map:
             title_map[title_key] = row["id"]
 
