@@ -107,32 +107,44 @@ def _parse_date(date_published: Any) -> Optional[datetime]:
 # Batch episode fetch
 # ---------------------------------------------------------------------------
 
+_TADDY_BATCH_SIZE = 15
+
+
 def _batch_fetch_episodes(uuids: list[str]) -> list[dict[str, Any]]:
     """
-    Fetch the latest episode for each podcast series UUID in one GraphQL call.
+    Fetch the latest episode for each podcast series UUID.
+
+    UUIDs are split into chunks of _TADDY_BATCH_SIZE to stay well under Taddy's
+    silent 25-result cap.  Each chunk is one GraphQL request.
 
     Returns a flat list of episode dicts, each augmented with podcastSeries info.
     """
-    uuid_list = ", ".join(f'"{u}"' for u in uuids)
-    query = f"""
-    {{
-      getLatestPodcastEpisodes(uuids: [{uuid_list}]) {{
-        uuid
-        name
-        datePublished
-        audioUrl
-        duration
-        description(shouldStripHtmlTags: true)
-        taddyTranscribeStatus
-        podcastSeries {{
-          uuid
-          name
+    chunks = [uuids[i:i + _TADDY_BATCH_SIZE] for i in range(0, len(uuids), _TADDY_BATCH_SIZE)]
+    logger.info("Fetching episodes in %d batch(es) of up to %d UUIDs", len(chunks), _TADDY_BATCH_SIZE)
+
+    episodes: list[dict[str, Any]] = []
+    for chunk in chunks:
+        uuid_list = ", ".join(f'"{u}"' for u in chunk)
+        query = f"""
+        {{
+          getLatestPodcastEpisodes(uuids: [{uuid_list}]) {{
+            uuid
+            name
+            datePublished
+            audioUrl
+            duration
+            description(shouldStripHtmlTags: true)
+            taddyTranscribeStatus
+            podcastSeries {{
+              uuid
+              name
+            }}
+          }}
         }}
-      }}
-    }}
-    """
-    data = _graphql(query)
-    return data.get("getLatestPodcastEpisodes") or []
+        """
+        data = _graphql(query)
+        episodes.extend(data.get("getLatestPodcastEpisodes") or [])
+    return episodes
 
 
 # ---------------------------------------------------------------------------
