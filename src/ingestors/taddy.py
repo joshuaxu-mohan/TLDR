@@ -107,7 +107,7 @@ def _parse_date(date_published: Any) -> Optional[datetime]:
 # Batch episode fetch
 # ---------------------------------------------------------------------------
 
-_TADDY_BATCH_SIZE = 15
+_TADDY_BATCH_SIZE = 10
 
 
 def _batch_fetch_episodes(uuids: list[str]) -> list[dict[str, Any]]:
@@ -194,7 +194,7 @@ def ingest_podcasts(since_dt: Optional[datetime] = None) -> list[IngestResult]:
     logger.info("Taddy returned %d episode(s)", len(episodes))
 
     # Per-priority counters for logging
-    counts = {"always": 0, "on_demand": 0, "skip": 0}
+    counts = {"always": 0, "on_demand": 0, "skipped_old": 0, "skipped_existing": 0, "skipped_other": 0}
     results: list[IngestResult] = []
 
     for ep in episodes:
@@ -210,7 +210,7 @@ def ingest_podcasts(since_dt: Optional[datetime] = None) -> list[IngestResult]:
         source = uuid_to_source.get(series_uuid)
         if source is None:
             logger.debug("No source matched for series uuid=%s — skipping", series_uuid)
-            counts["skip"] += 1
+            counts["skipped_other"] += 1
             continue
 
         # Canary: warn if Taddy's series name doesn't match our source name.
@@ -237,7 +237,7 @@ def ingest_podcasts(since_dt: Optional[datetime] = None) -> list[IngestResult]:
                 "Skipping old episode (published %s < cutoff %s): %s",
                 date_published.isoformat(), since_dt.isoformat(), title,
             )
-            counts["skip"] += 1
+            counts["skipped_old"] += 1
             continue
 
         source_name: str = source["name"]
@@ -250,7 +250,7 @@ def ingest_podcasts(since_dt: Optional[datetime] = None) -> list[IngestResult]:
 
         if not audio_url:
             logger.warning("[%s] Episode has no audioUrl: %s", source_name, title)
-            counts["skip"] += 1
+            counts["skipped_other"] += 1
             continue
 
         # Use audioUrl as the unique dedup key (it never changes for an episode)
@@ -267,7 +267,7 @@ def ingest_podcasts(since_dt: Optional[datetime] = None) -> list[IngestResult]:
 
         if priority == "skip":
             # Title/URL stub only — no transcript, no summarisation.
-            counts["skip"] += 1
+            counts["skipped_other"] += 1
             logger.info("[%s] Saving title stub (priority=skip): %s", source_name, title)
 
         elif priority == "always":
@@ -308,6 +308,7 @@ def ingest_podcasts(since_dt: Optional[datetime] = None) -> list[IngestResult]:
 
         if article_id is None:
             logger.debug("[%s] Duplicate episode skipped: %s", source_name, title)
+            counts["skipped_existing"] += 1
         else:
             logger.info(
                 "[%s] Saved episode id=%d (priority=%s): %s",
@@ -325,9 +326,11 @@ def ingest_podcasts(since_dt: Optional[datetime] = None) -> list[IngestResult]:
             error_message=None,
         ))
 
+    total_skipped = counts["skipped_old"] + counts["skipped_existing"] + counts["skipped_other"]
     logger.info(
-        "Taddy ingest complete — always:%d on_demand:%d skipped:%d",
-        counts["always"], counts["on_demand"], counts["skip"],
+        "Taddy ingest complete — always:%d on_demand:%d skipped:%d (old:%d existing:%d other:%d)",
+        counts["always"], counts["on_demand"], total_skipped,
+        counts["skipped_old"], counts["skipped_existing"], counts["skipped_other"],
     )
     return results
 

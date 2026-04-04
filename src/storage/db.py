@@ -1117,6 +1117,25 @@ def get_feed_summary(date: str) -> Optional[sqlite3.Row]:
         ).fetchone()
 
 
+def get_articles_ingested_since(since_dt: datetime) -> list[sqlite3.Row]:
+    """
+    Return all articles ingested at or after since_dt, with source info.
+
+    Used by the Telegram notifier to list articles new to a specific pipeline run.
+    """
+    with _connection() as conn:
+        return conn.execute(
+            """
+            SELECT a.id, a.title, s.name AS source_name, s.content_category
+            FROM articles a
+            JOIN sources s ON s.id = a.source_id
+            WHERE a.ingested_at >= ?
+            ORDER BY s.content_category ASC, a.ingested_at ASC
+            """,
+            (since_dt.isoformat(),),
+        ).fetchall()
+
+
 def get_recent_summarised_articles(hours: int = 25) -> list[sqlite3.Row]:
     """
     Return recently summarised articles for feed summary generation.

@@ -143,11 +143,7 @@ def send_pipeline_notification(
     transcribed: int,
 ) -> None:
     """
-    Send a full pipeline run summary to Telegram.
-
-    Fetches feed summary, transcription log, recent articles, and budget data
-    from the database itself — the caller only needs to supply the per-step
-    counts accumulated during the run.
+    Send a pipeline run summary to Telegram.
 
     No-op (with a DEBUG log) if credentials are absent.
     """
@@ -156,119 +152,57 @@ def send_pipeline_notification(
         logger.debug("Telegram credentials not configured — skipping notification")
         return
 
-    today = datetime.now(UTC).strftime("%Y-%m-%d")
     run_ts = _e(start_time.strftime("%d %b %Y %H:%M UTC"))
-    elapsed_s = int((datetime.now(UTC) - start_time).total_seconds())
-    elapsed = _e(f"{elapsed_s // 60}m {elapsed_s % 60}s")
 
-    # DB lookups — all failures caught by the caller's try/except
     groq_raw = db.get_groq_usage()
     gemini_raw = db.get_gemini_usage()
     groq_hr = round(groq_raw["remaining_seconds_hour"] / 60, 1)
     groq_day = round(groq_raw["remaining_seconds_day"] / 60, 1)
     gem_rem = gemini_raw["remaining_today"]
-    gem_lim = gemini_raw["limit_today"]
 
-    feed_row = db.get_feed_summary(today)
-    tx_rows = db.get_recent_transcriptions(hours=4)
-    articles = db.get_recent_summarised_articles(hours=25)
+    new_articles = db.get_articles_ingested_since(start_time)
+    news_new = [a for a in new_articles if (a["content_category"] or "").lower() == "news"]
+    info_new = [a for a in new_articles if (a["content_category"] or "").lower() != "news"]
 
-    # ── Part 1: header + ingestion stats ─────────────────────────────────────
+    today_articles = db.get_recent_summarised_articles(hours=25)
+    n_news_today = sum(1 for a in today_articles if (a["content_category"] or "").lower() == "news")
+    n_info_today = sum(1 for a in today_articles if (a["content_category"] or "").lower() != "news")
 
-    part1 = "\n".join([
-        f"*🗞 Daily Digest \u2014 {run_ts}*",
+    lines: list[str] = []
+
+    lines += [
+        f"*Pipeline Run* \u2014 {run_ts}",
+        f"Ingested: {_e(str(rss_ok))} newsletters, {_e(str(taddy_ok))} podcasts",
+        f"Scraped: {_e(str(scraped))} · Transcribed: {_e(str(transcribed))}",
         "",
-        f"📥 *Ingested* \\({elapsed}\\)",
-        f"Newsletters: *{rss_ok}*\\/{_e(str(rss_total))}  ·  "
-        f"Podcasts: *{taddy_ok}*\\/{_e(str(taddy_total))}",
-        f"Scraped: *{scraped}*  ·  Transcribed: *{transcribed}*",
-    ])
-
-    # ── Part 2: feed summary excerpt ─────────────────────────────────────────
-
-    part2_lines: list[str] = []
-    if feed_row:
-        news_text: Optional[str] = (
-            feed_row["news_summary"] if "news_summary" in feed_row.keys() else None
-        )
-        informative_text: Optional[str] = (
-            feed_row["informative_summary"]
-            if "informative_summary" in feed_row.keys()
-            else None
-        )
-        if news_text or informative_text:
-            part2_lines.append("📋 *Feed Summary*")
-        if news_text:
-            excerpt = _first_paragraph(news_text, max_chars=400)
-            if excerpt:
-                part2_lines.append(_e(excerpt))
-        if informative_text:
-            excerpt = _first_paragraph(informative_text, max_chars=280)
-            if excerpt:
-                part2_lines.append("_Informative:_ " + _e(excerpt))
-
-    part2 = "\n".join(part2_lines)
-
-    # ── Part 3: article list (grouped by content_category) ───────────────────
-
-    news_arts = [a for a in articles if (a["content_category"] or "").lower() == "news"]
-    info_arts = [a for a in articles if (a["content_category"] or "").lower() != "news"]
-    total = len(articles)
-    limit = 15
-
-    part3_lines: list[str] = []
-    shown = 0
-
-    if news_arts:
-        part3_lines.append(f"📰 *News* \\({len(news_arts)}\\)")
-        for art in news_arts[:min(8, limit)]:
-            src = _e((art["source_name"] or "")[:30])
-            title = _e((art["title"] or "")[:55])
-            part3_lines.append(f"• {src}: {title}")
-            shown += 1
-
-    remaining = limit - shown
-    if info_arts and remaining > 0:
-        if part3_lines:
-            part3_lines.append("")
-        part3_lines.append(f"💡 *Informative* \\({len(info_arts)}\\)")
-        for art in info_arts[:remaining]:
-            src = _e((art["source_name"] or "")[:30])
-            title = _e((art["title"] or "")[:55])
-            part3_lines.append(f"• {src}: {title}")
-            shown += 1
-
-    if total > limit:
-        part3_lines.append(f"_\\+{total - limit} more_")
-
-    part3 = "\n".join(part3_lines)
-
-    # ── Part 4: transcription log + budget ───────────────────────────────────
-
-    part4_lines: list[str] = []
-
-    if tx_rows:
-        part4_lines.append("🎙 *Transcribed this run*")
-        for tx in tx_rows[:5]:
-            mins = int(tx["audio_seconds"] // 60)
-            secs = int(tx["audio_seconds"] % 60)
-            dur = _e(f"{mins}m {secs}s" if mins else f"{secs}s")
-            src = _e((tx["source_name"] or "")[:28])
-            title = _e((tx["title"] or "")[:48])
-            part4_lines.append(f"• {src}: {title} \\({dur}\\)")
-        part4_lines.append("")
-
-    part4_lines += [
-        "💰 *Budget*",
-        f"Groq: {_e(str(groq_hr))}m\\/hr  ·  {_e(str(groq_day))}m\\/day remaining",
-        f"Gemini: {_e(str(gem_rem))}\\/{_e(str(gem_lim))} calls remaining",
     ]
 
-    part4 = "\n".join(part4_lines)
+    lines.append("*News \\(new this run\\)*")
+    if news_new:
+        for a in news_new[:15]:
+            lines.append(f"• {_e((a['title'] or '')[:60])} \u2014 {_e((a['source_name'] or '')[:30])}")
+    else:
+        lines.append("No new news articles")
+    lines.append("")
 
-    # ── Send ─────────────────────────────────────────────────────────────────
+    lines.append("*Informative \\(new this run\\)*")
+    if info_new:
+        for a in info_new[:15]:
+            lines.append(f"• {_e((a['title'] or '')[:60])} \u2014 {_e((a['source_name'] or '')[:30])}")
+    else:
+        lines.append("No new informative articles")
+    lines.append("")
 
-    _send_parts(token, chat_id, [p for p in [part1, part2, part3, part4] if p])
+    lines += [
+        "*Feed today*",
+        f"{_e(str(n_news_today))} news · {_e(str(n_info_today))} informative",
+        "",
+        "*Budget*",
+        f"Groq: {_e(str(groq_hr))}m\\/hr · {_e(str(groq_day))}m\\/day",
+        f"Gemini: {_e(str(gem_rem))}\\/500 RPD",
+    ]
+
+    _send_raw(token, chat_id, "\n".join(lines)[:_MAX_LEN])
     logger.info("Telegram pipeline notification sent")
 
 

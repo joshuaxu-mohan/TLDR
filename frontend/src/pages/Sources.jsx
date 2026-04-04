@@ -892,7 +892,7 @@ function SourceCard({ source, onUpdated, onDeleted }) {
     setTogglingCategory(true)
     const next = source.content_category === 'news' ? 'informative' : 'news'
     try {
-      onUpdated(await updateSource(source.id, { content_category: next }))
+      onUpdated(await updateSource(source.id, { content_type: next }))
     } catch (err) { setError(err.message) }
     finally { setTogglingCategory(false) }
   }
