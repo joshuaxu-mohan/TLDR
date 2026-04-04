@@ -129,16 +129,14 @@ def ingestion_cycle(since_dt: Optional[datetime] = None) -> None:
         logger.info("=== Ingestion cycle starting at %s ===", start.isoformat())
 
     # Per-step counters collected for the post-run Telegram notification
-    _rss_ok = _rss_total = _taddy_ok = _taddy_total = _scraped = _transcribed = 0
+    _scraped = _transcribed = 0
 
     try:
         # 1. RSS / Substack
         try:
             from src.ingestors.rss import ingest_substacks
             results = ingest_substacks(since_dt=since_dt)
-            _rss_ok = sum(1 for r in results if r.success)
-            _rss_total = len(results)
-            logger.info("RSS ingestor: %d/%d succeeded", _rss_ok, _rss_total)
+            logger.info("RSS ingestor: %d/%d succeeded", sum(1 for r in results if r.success), len(results))
         except Exception as exc:
             logger.error("RSS ingestor failed: %s", exc, exc_info=True)
 
@@ -146,9 +144,7 @@ def ingestion_cycle(since_dt: Optional[datetime] = None) -> None:
         try:
             from src.ingestors.taddy import ingest_podcasts as taddy_ingest
             results = taddy_ingest(since_dt=since_dt)
-            _taddy_ok = sum(1 for r in results if r.success)
-            _taddy_total = len(results)
-            logger.info("Taddy ingestor: %d/%d succeeded", _taddy_ok, _taddy_total)
+            logger.info("Taddy ingestor: %d/%d succeeded", sum(1 for r in results if r.success), len(results))
         except Exception as exc:
             logger.error("Taddy ingestor failed: %s", exc, exc_info=True)
 
@@ -195,10 +191,6 @@ def ingestion_cycle(since_dt: Optional[datetime] = None) -> None:
         from src.delivery.telegram import send_pipeline_notification
         send_pipeline_notification(
             start_time=start,
-            rss_ok=_rss_ok,
-            rss_total=_rss_total,
-            taddy_ok=_taddy_ok,
-            taddy_total=_taddy_total,
             scraped=_scraped,
             transcribed=_transcribed,
         )

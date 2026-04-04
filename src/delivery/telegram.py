@@ -135,10 +135,6 @@ def _credentials() -> tuple[Optional[str], Optional[str]]:
 
 def send_pipeline_notification(
     start_time: datetime,
-    rss_ok: int,
-    rss_total: int,
-    taddy_ok: int,
-    taddy_total: int,
     scraped: int,
     transcribed: int,
 ) -> None:
@@ -161,6 +157,8 @@ def send_pipeline_notification(
     gem_rem = gemini_raw["remaining_today"]
 
     new_articles = db.get_articles_ingested_since(start_time)
+    n_newsletters = sum(1 for a in new_articles if (a["source_type"] or "") != "podcast")
+    n_podcasts    = sum(1 for a in new_articles if (a["source_type"] or "") == "podcast")
     news_new = [a for a in new_articles if (a["content_category"] or "").lower() == "news"]
     info_new = [a for a in new_articles if (a["content_category"] or "").lower() != "news"]
 
@@ -172,7 +170,7 @@ def send_pipeline_notification(
 
     lines += [
         f"*Pipeline Run* \u2014 {run_ts}",
-        f"Ingested: {_e(str(rss_ok))} newsletters, {_e(str(taddy_ok))} podcasts",
+        f"Ingested: {_e(str(n_newsletters))} newsletters, {_e(str(n_podcasts))} podcasts",
         f"Scraped: {_e(str(scraped))} · Transcribed: {_e(str(transcribed))}",
         "",
     ]

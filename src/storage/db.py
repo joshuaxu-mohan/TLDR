@@ -1126,7 +1126,7 @@ def get_articles_ingested_since(since_dt: datetime) -> list[sqlite3.Row]:
     with _connection() as conn:
         return conn.execute(
             """
-            SELECT a.id, a.title, s.name AS source_name, s.content_category
+            SELECT a.id, a.title, s.name AS source_name, s.type AS source_type, s.content_category
             FROM articles a
             JOIN sources s ON s.id = a.source_id
             WHERE a.ingested_at >= ?
