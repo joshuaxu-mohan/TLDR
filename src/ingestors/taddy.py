@@ -63,6 +63,14 @@ def _headers() -> dict[str, str]:
     }
 
 
+class TaddyQuotaExhausted(RuntimeError):
+    """Raised when Taddy returns a 500 API_RATE_LIMIT_EXCEEDED response."""
+
+
+class TaddyAuthError(RuntimeError):
+    """Raised when Taddy returns a 401 or 403 response."""
+
+
 def _graphql(query: str) -> dict[str, Any]:
     """Execute a GraphQL query against the Taddy API and return the data dict."""
     try:
@@ -72,15 +80,30 @@ def _graphql(query: str) -> dict[str, Any]:
             headers=_headers(),
             timeout=_REQUEST_TIMEOUT,
         )
-        response.raise_for_status()
-        payload = response.json()
     except requests.exceptions.ConnectionError as exc:
         raise RuntimeError(f"Taddy API connection error: {exc}") from exc
     except requests.exceptions.Timeout:
         raise RuntimeError(f"Taddy API timed out after {_REQUEST_TIMEOUT}s")
-    except requests.exceptions.HTTPError as exc:
-        raise RuntimeError(f"Taddy API HTTP error: {exc}") from exc
 
+    if response.status_code in (401, 403):
+        raise TaddyAuthError(
+            f"Taddy API authentication failed (HTTP {response.status_code})"
+        )
+    if response.status_code == 500:
+        body_preview = response.text[:500]
+        if "API_RATE_LIMIT_EXCEEDED" in body_preview:
+            raise TaddyQuotaExhausted(
+                "Taddy quota exhausted — monthly API limit reached"
+            )
+        raise RuntimeError(
+            f"Taddy API HTTP 500: {body_preview}"
+        )
+    if not response.ok:
+        raise RuntimeError(
+            f"Taddy API HTTP error {response.status_code}: {response.text[:500]}"
+        )
+
+    payload = response.json()
     errors = payload.get("errors")
     if errors:
         messages = "; ".join(e.get("message", str(e)) for e in errors)
@@ -90,14 +113,14 @@ def _graphql(query: str) -> dict[str, Any]:
 
 
 def _parse_date(date_published: Any) -> Optional[datetime]:
-    """Convert a Unix timestamp integer or ISO string to a datetime."""
+    """Convert a Unix timestamp integer or ISO string to a UTC-aware datetime."""
     if date_published is None:
         return None
     try:
         if isinstance(date_published, (int, float)):
-            return datetime.utcfromtimestamp(date_published)
+            return datetime.fromtimestamp(date_published, tz=timezone.utc)
         if isinstance(date_published, str):
-            return datetime.fromisoformat(date_published.rstrip("Z"))
+            return datetime.fromisoformat(date_published.replace("Z", "+00:00"))
     except (ValueError, OSError):
         pass
     return None
@@ -123,7 +146,8 @@ def _batch_fetch_episodes(uuids: list[str]) -> list[dict[str, Any]]:
     logger.info("Fetching episodes in %d batch(es) of up to %d UUIDs", len(chunks), _TADDY_BATCH_SIZE)
 
     episodes: list[dict[str, Any]] = []
-    for chunk in chunks:
+    failed_chunks: list[int] = []
+    for idx, chunk in enumerate(chunks):
         uuid_list = ", ".join(f'"{u}"' for u in chunk)
         query = f"""
         {{
@@ -142,8 +166,21 @@ def _batch_fetch_episodes(uuids: list[str]) -> list[dict[str, Any]]:
           }}
         }}
         """
-        data = _graphql(query)
-        episodes.extend(data.get("getLatestPodcastEpisodes") or [])
+        try:
+            data = _graphql(query)
+            episodes.extend(data.get("getLatestPodcastEpisodes") or [])
+        except Exception as exc:
+            logger.error(
+                "Taddy batch fetch failed for chunk %d (UUIDs: %s): %s",
+                idx, chunk, exc,
+            )
+            failed_chunks.append(idx)
+
+    if failed_chunks:
+        logger.error(
+            "Taddy batch fetch: %d of %d chunk(s) failed — partial results returned",
+            len(failed_chunks), len(chunks),
+        )
     return episodes
 
 
@@ -182,6 +219,17 @@ def ingest_podcasts(since_dt: Optional[datetime] = None) -> list[IngestResult]:
 
     try:
         episodes = _batch_fetch_episodes(list(uuid_to_source.keys()))
+    except TaddyQuotaExhausted as exc:
+        logger.error(
+            "Taddy quota exhausted — RSS will continue, pipeline will skip Taddy until next month: %s",
+            exc,
+        )
+        return [IngestResult(
+            source_name="taddy", source_type="podcast",
+            title="", content="", url=_TADDY_ENDPOINT,
+            published_at=datetime.now(UTC), success=False,
+            error_message=str(exc),
+        )]
     except RuntimeError as exc:
         logger.error("Taddy batch fetch failed: %s", exc)
         return [IngestResult(

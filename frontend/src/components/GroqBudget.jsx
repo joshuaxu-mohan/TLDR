@@ -16,9 +16,13 @@ import { getGroqBudget } from '../api'
  */
 export default function GroqBudget({ refreshKey = 0 }) {
   const [budget, setBudget] = useState(null)
+  const [error,  setError]  = useState(false)
 
   function fetchBudget() {
-    getGroqBudget().then(setBudget).catch(() => {})
+    setError(false)
+    getGroqBudget()
+      .then(data => { setBudget(data) })
+      .catch(err => { console.error('GroqBudget fetch failed:', err); setError(true) })
   }
 
   useEffect(() => { fetchBudget() }, [refreshKey])
@@ -28,6 +32,11 @@ export default function GroqBudget({ refreshKey = 0 }) {
     return () => window.removeEventListener('groq-budget-refresh', fetchBudget)
   }, [])
 
+  if (error) return (
+    <p className="font-label text-[10px] uppercase tracking-wider text-on-surface-variant/40">
+      GROQ: — failed to load
+    </p>
+  )
   if (!budget) return null
 
   const hourly = budget.remaining_minutes_hour.toFixed(0)

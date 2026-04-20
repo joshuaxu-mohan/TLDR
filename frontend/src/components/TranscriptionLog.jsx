@@ -29,16 +29,24 @@ export default function TranscriptionLog({ hours = 24, refreshKey = 0 }) {
   const [entries, setEntries] = useState([])
   const [open,    setOpen]    = useState(false)
   const [loading, setLoading] = useState(true)
+  const [error,   setError]   = useState(false)
 
   useEffect(() => {
     setLoading(true)
+    setError(false)
     getTranscriptionLog(hours)
-      .then(setEntries)
-      .catch(() => {})
+      .then(data => setEntries(data))
+      .catch(err => { console.error('TranscriptionLog fetch failed:', err); setError(true) })
       .finally(() => setLoading(false))
   }, [hours, refreshKey])
 
-  if (loading || entries.length === 0) return null
+  if (loading) return null
+  if (error) return (
+    <p className="font-label text-[10px] uppercase tracking-wider text-on-surface-variant/40 mb-4">
+      TRANSCRIPTION LOG — failed to load
+    </p>
+  )
+  if (entries.length === 0) return null
 
   return (
     <div className="mb-4 border border-outline-variant">

@@ -123,14 +123,35 @@ def _run_migrations(conn: sqlite3.Connection) -> None:
         except sqlite3.OperationalError:
             pass
 
-    conn.execute(
-        "UPDATE articles SET needs_transcription = 0 "
-        "WHERE source_id IN (SELECT id FROM sources WHERE transcript_priority != 'always')"
-    )
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS schema_migrations (
+            version    TEXT PRIMARY KEY,
+            applied_at TEXT NOT NULL
+        )
+    """)
 
-    # Remove legacy 'all'-category digests generated before the news/informative
-    # split was introduced.  These rows are orphaned and no longer queried.
-    conn.execute("DELETE FROM digests WHERE category = 'all'")
+    def _migration_applied(version: str) -> bool:
+        row = conn.execute(
+            "SELECT 1 FROM schema_migrations WHERE version = ?", (version,)
+        ).fetchone()
+        return row is not None
+
+    def _record_migration(version: str) -> None:
+        conn.execute(
+            "INSERT INTO schema_migrations (version, applied_at) VALUES (?, ?)",
+            (version, datetime.now(UTC).isoformat()),
+        )
+
+    if not _migration_applied("2026-04-clear-ondemand-flags"):
+        conn.execute(
+            "UPDATE articles SET needs_transcription = 0 "
+            "WHERE source_id IN (SELECT id FROM sources WHERE transcript_priority != 'always')"
+        )
+        _record_migration("2026-04-clear-ondemand-flags")
+
+    if not _migration_applied("2026-04-delete-legacy-all-digests"):
+        conn.execute("DELETE FROM digests WHERE category = 'all'")
+        _record_migration("2026-04-delete-legacy-all-digests")
 
     # Backfill: give already-summarised articles an approximate summarised_at
     # using the most recent digest's generated_at.  The WHERE guard makes this

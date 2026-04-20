@@ -69,12 +69,12 @@ def _extract_content(entry: Any) -> str:
 
 
 def _parse_published(entry: Any) -> Optional[datetime]:
-    """Convert feedparser's published_parsed (time.struct_time) to a datetime."""
+    """Convert feedparser's published_parsed (time.struct_time) to a UTC-aware datetime."""
     struct = getattr(entry, "published_parsed", None)
     if struct is None:
         return None
     try:
-        return datetime(*struct[:6])
+        return datetime(*struct[:6], tzinfo=UTC)
     except (TypeError, ValueError):
         return None
 

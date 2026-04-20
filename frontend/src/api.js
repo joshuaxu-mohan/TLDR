@@ -8,12 +8,20 @@
  */
 
 const BASE = import.meta.env.VITE_API_URL || '/api'
+const _TOKEN = (import.meta.env.VITE_API_TOKEN || '').trim()
+
+function _authHeaders() {
+  return _TOKEN ? { Authorization: `Bearer ${_TOKEN}` } : {}
+}
 
 async function request(path, options = {}) {
-  const res = await fetch(`${BASE}${path}`, options)
+  const res = await fetch(`${BASE}${path}`, {
+    ...options,
+    headers: { ..._authHeaders(), ...(options.headers || {}) },
+  })
   if (res.status === 204) return null
   if (!res.ok) {
-    const detail = await res.json().then(d => d.detail).catch(() => res.statusText)
+    const detail = await res.json().then(d => d.detail || d.error).catch(() => res.statusText)
     throw new Error(detail || `HTTP ${res.status}`)
   }
   return res.json()

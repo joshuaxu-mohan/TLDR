@@ -120,7 +120,13 @@ export default function PageSummary({ articleIds, label, summaryDate }) {
         setSummary(result)
         setState('done')
       })
-      .catch(() => {})
+      .catch(err => {
+        console.error('PageSummary feed summary fetch failed:', err)
+        // 404 means no summary yet — stay in idle so the generate button shows
+        if (err.message && err.message.includes('404')) return
+        setState('error')
+        setErrorMsg('Failed to load feed summary')
+      })
   }, [summaryDate])
 
   async function generate() {

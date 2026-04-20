@@ -15,9 +15,13 @@ import { getGeminiBudget } from '../api'
  */
 export default function GeminiBudget({ refreshKey = 0 }) {
   const [budget, setBudget] = useState(null)
+  const [error,  setError]  = useState(false)
 
   function fetchBudget() {
-    getGeminiBudget().then(setBudget).catch(() => {})
+    setError(false)
+    getGeminiBudget()
+      .then(data => { setBudget(data) })
+      .catch(err => { console.error('GeminiBudget fetch failed:', err); setError(true) })
   }
 
   useEffect(() => { fetchBudget() }, [refreshKey])
@@ -27,6 +31,11 @@ export default function GeminiBudget({ refreshKey = 0 }) {
     return () => window.removeEventListener('gemini-budget-refresh', fetchBudget)
   }, [])
 
+  if (error) return (
+    <p className="font-label text-[10px] uppercase tracking-wider text-on-surface-variant/40">
+      GEMINI: — failed to load
+    </p>
+  )
   if (!budget) return null
 
   const remaining = budget.remaining_today

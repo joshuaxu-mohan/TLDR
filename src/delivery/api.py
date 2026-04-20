@@ -27,6 +27,7 @@ CORS is enabled for origins listed in settings.cors_origins.
 
 import json
 import logging
+import os
 import re
 from datetime import datetime
 from typing import Any, Optional
@@ -34,7 +35,7 @@ from typing import Any, Optional
 import feedparser
 from fastapi import APIRouter, FastAPI, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, PlainTextResponse, Response
+from fastapi.responses import FileResponse, JSONResponse, PlainTextResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from pathlib import Path
@@ -43,6 +44,46 @@ from src.config.settings import get_settings
 from src.storage import db
 
 logger = logging.getLogger(__name__)
+
+# ---------------------------------------------------------------------------
+# Bearer token auth
+# ---------------------------------------------------------------------------
+
+from src.config.settings import get_settings
+_API_BEARER_TOKEN: str = get_settings().api_bearer_token.strip()
+
+if not _API_BEARER_TOKEN:
+    logger.warning(
+        "API_BEARER_TOKEN is not set — write endpoints are unprotected. "
+        "Set the variable in .env to enable authentication."
+    )
+
+_PROTECTED_ROUTES: set[tuple[str, str]] = {
+    ("POST",   "/api/summarise-page"),
+    ("POST",   "/api/feed-summary/refresh"),
+    ("POST",   "/api/sources"),
+    ("PATCH",  "/api/sources/{source_id}"),
+    ("DELETE", "/api/sources/{source_id}"),
+}
+
+# Prefix patterns used for dynamic-segment routes (articles/{id}/...)
+_PROTECTED_PREFIXES: list[tuple[str, str]] = [
+    ("POST",   "/api/articles/"),
+]
+
+
+def _is_protected(method: str, path: str) -> bool:
+    """Return True if the request requires a valid bearer token."""
+    if not _API_BEARER_TOKEN:
+        return False
+    key = (method.upper(), path)
+    if key in _PROTECTED_ROUTES:
+        return True
+    for m, prefix in _PROTECTED_PREFIXES:
+        if method.upper() == m and path.startswith(prefix):
+            return True
+    return False
+
 
 # ---------------------------------------------------------------------------
 # App setup
@@ -56,7 +97,10 @@ app = FastAPI(
 
 # Run DB migrations on startup so the server works when launched directly
 # via uvicorn (without going through main.py which also calls init_db).
-db.init_db()
+try:
+    db.init_db()
+except Exception:
+    logger.error("Database initialisation failed — server will start but DB operations may fail", exc_info=True)
 
 _settings = get_settings()
 _origins = [o.strip() for o in _settings.cors_origins.split(",") if o.strip()]
@@ -68,6 +112,17 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.middleware("http")
+async def bearer_auth_middleware(request: Request, call_next):
+    if _is_protected(request.method, request.url.path):
+        auth_header = request.headers.get("Authorization", "")
+        token = auth_header.removeprefix("Bearer ").strip()
+        if token != _API_BEARER_TOKEN:
+            return JSONResponse(status_code=401, content={"error": "unauthorized"})
+    return await call_next(request)
+
 
 # All API routes are grouped under /api so the SPA catch-all can serve every
 # other path without conflicting with backend endpoints.
