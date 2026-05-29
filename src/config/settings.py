@@ -25,8 +25,6 @@ class Settings(BaseSettings):
         extra="ignore",  # silently drop unknown env vars (e.g. COLOSSUS_EMAIL)
     )
 
-    api_bearer_token: str = ""
-
     # AI APIs — Gemini is the active summariser; Anthropic kept for future use
     gemini_api_key: Optional[str] = None
     anthropic_api_key: Optional[str] = None

@@ -7,7 +7,7 @@ Personal content digest pipeline: ingests newsletters and podcasts, transcribes 
 - Backend: FastAPI serving both API and built React frontend as a single process
 - Database: SQLite at data/digest.db
 - Transcription: Groq Whisper API (whisper-large-v3). No local Whisper. Stops gracefully on 429.
-- Summarisation: Gemini 3.1 Flash Lite Preview (fallback: gemini-2.5-flash)
+- Summarisation: gemini-2.5-flash primary (fallback: gemini-2.5-flash-lite on 404)
 - Frontend: React + Tailwind, built to frontend/dist/, served by FastAPI StaticFiles
 - All API routes under /api prefix via APIRouter(prefix="/api")
 - Episode discovery: Taddy for metadata + audio URLs only (no transcript fetches)

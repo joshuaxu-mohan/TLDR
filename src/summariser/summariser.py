@@ -41,13 +41,13 @@ _RETRY_BASE_DELAY = 5    # seconds — for rate-limit (429) errors; doubled on e
 _SERVER_ERROR_BASE_DELAY = 10  # seconds — for server errors (5xx); longer cooldown needed
 
 # Model selection
-# 3.1 Flash Lite preview: 15 RPM, 500 RPD free tier — best throughput on free tier
-# (verified via client.models.list(): "models/gemini-3.1-flash-lite-preview")
-# PREMIUM_MODEL = "gemini-2.5-flash"  # 5 RPM, 20 RPD free tier — quality-critical use only
-_GEMINI_MODEL = "gemini-3.1-flash-lite-preview"
+# gemini-2.5-flash: stable (non-preview), free tier 10 RPM / 500 RPD
+# gemini-2.5-flash-lite: stable lite fallback — used automatically on 404 (retired primary)
+_GEMINI_MODEL = "gemini-2.5-flash"
+_GEMINI_FALLBACK_MODEL = "gemini-2.5-flash-lite"
 
-# Proactive inter-request pacing — keeps us safely under the 15 RPM limit
-# (5 s between calls = max 12 RPM, giving a 3-request headroom)
+# Proactive inter-request pacing — keeps us safely under the 10 RPM limit
+# (5 s between calls = max 12 RPM; combined with retry backoff this is conservative)
 _REQUEST_DELAY_SECONDS = 5.0
 
 # Content-aware truncation limits (words)
@@ -189,19 +189,20 @@ def _build_prompt(rows: list[dict[str, Any]]) -> str:
     return "\n---\n".join(parts)
 
 
-def _call_gemini(prompt: str) -> str:
+def _call_gemini_model(prompt: str, model: str) -> str:
     """
-    Send prompt to Gemini and return the raw response text.
+    Send prompt to a specific Gemini model and return the raw response text.
 
-    Retries on rate-limit (HTTP 429) and server errors (5xx) with
-    exponential backoff.  Other API errors are re-raised immediately.
+    Retries on rate-limit (HTTP 429) and server errors (5xx) with exponential
+    backoff.  On 404 (model retired/unavailable) raises immediately without
+    retrying — the caller handles fallback.
     """
     client = _get_client()
 
     for attempt in range(_MAX_RETRIES):
         try:
             response = client.models.generate_content(
-                model=_GEMINI_MODEL,
+                model=model,
                 contents=prompt,
             )
             text = response.text
@@ -211,14 +212,17 @@ def _call_gemini(prompt: str) -> str:
                 pass  # logging failure must never interrupt the call
             return text
         except genai_errors.ClientError as exc:
-            # ClientError covers all 4xx responses; 429 = rate limited
+            # ClientError covers all 4xx responses
             code = getattr(exc, "code", None) or getattr(exc, "status_code", 0)
+            is_404 = code == 404 or "404" in str(exc) or "NOT_FOUND" in str(exc).upper()
             is_rate_limit = code == 429 or "429" in str(exc) or "quota" in str(exc).lower()
+            if is_404:
+                raise  # permanent — do not retry
             if is_rate_limit and attempt < _MAX_RETRIES - 1:
                 delay = _RETRY_BASE_DELAY * (2 ** attempt)
                 logger.warning(
-                    "Rate limited by Gemini API — retrying in %ds (attempt %d)",
-                    delay, attempt + 1,
+                    "Rate limited by Gemini API (%s) — retrying in %ds (attempt %d)",
+                    model, delay, attempt + 1,
                 )
                 time.sleep(delay)
             else:
@@ -227,14 +231,35 @@ def _call_gemini(prompt: str) -> str:
             if attempt < _MAX_RETRIES - 1:
                 delay = _SERVER_ERROR_BASE_DELAY * (2 ** attempt)
                 logger.warning(
-                    "Gemini API server error — retrying in %ds (attempt %d/%d): %s",
-                    delay, attempt + 1, _MAX_RETRIES, exc,
+                    "Gemini API server error (%s) — retrying in %ds (attempt %d/%d): %s",
+                    model, delay, attempt + 1, _MAX_RETRIES, exc,
                 )
                 time.sleep(delay)
             else:
                 raise
 
-    raise RuntimeError("Exceeded max retries calling Gemini API")  # unreachable but satisfies type checker
+    raise RuntimeError(f"Exceeded max retries calling Gemini API ({model})")
+
+
+def _call_gemini(prompt: str) -> str:
+    """
+    Send prompt to Gemini, falling back to _GEMINI_FALLBACK_MODEL on 404.
+
+    404 means the primary model has been retired.  All other errors propagate
+    after exhausting retries in _call_gemini_model.
+    """
+    try:
+        return _call_gemini_model(prompt, _GEMINI_MODEL)
+    except genai_errors.ClientError as exc:
+        code = getattr(exc, "code", None) or getattr(exc, "status_code", 0)
+        is_404 = code == 404 or "404" in str(exc) or "NOT_FOUND" in str(exc).upper()
+        if is_404:
+            logger.warning(
+                "Primary model %s returned 404 (retired?) — falling back to %s",
+                _GEMINI_MODEL, _GEMINI_FALLBACK_MODEL,
+            )
+            return _call_gemini_model(prompt, _GEMINI_FALLBACK_MODEL)
+        raise
 
 
 def _parse_gemini_response(raw: str) -> list[dict[str, Any]]:
