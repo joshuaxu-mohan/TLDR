@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import ReactMarkdown from 'react-markdown'
-import { extendArticleSummary, getArticle, transcribeArticle } from '../api'
+import { extendArticleSummary, getArticle, getArticleContent, transcribeArticle } from '../api'
+import { copyText, copyDeferred } from '../clipboard'
 
 const AUDIO_EXTENSIONS = ['.mp3', '.m4a', '.wav', '.ogg', '.aac', '.flac']
 
@@ -200,10 +201,17 @@ export default function ArticleDetail() {
   }
 
   async function handleCopyTranscript() {
-    if (copyState !== 'idle' || !article?.content) return
+    if (copyState !== 'idle') return
     setCopyState('copying')
     try {
-      await navigator.clipboard.writeText(article.content)
+      // Fetch the content fresh rather than trusting article.content, which can
+      // be stale after an on-demand transcription (the transcribe response is
+      // sent without the content field). copyDeferred keeps the clipboard write
+      // inside the gesture so the fetch doesn't break it on Safari/iOS.
+      await copyDeferred(async () => {
+        const { content } = await getArticleContent(article.id)
+        return content
+      })
       setCopyState('copied')
       setTimeout(() => setCopyState('idle'), 2000)
     } catch {
@@ -370,7 +378,7 @@ export default function ArticleDetail() {
                   onClick={async () => {
                     if (deepDiveCopyState !== 'idle') return
                     setDeepDiveCopyState('copied')
-                    await navigator.clipboard.writeText(extended)
+                    await copyText(extended)
                     setTimeout(() => setDeepDiveCopyState('idle'), 1500)
                   }}
                   title="Copy deep dive"

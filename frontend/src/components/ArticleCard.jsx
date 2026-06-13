@@ -19,6 +19,7 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import ReactMarkdown from 'react-markdown'
 import { extendArticleSummary, getArticleContent, transcribeArticle } from '../api'
+import { copyText, copyDeferred } from '../clipboard'
 
 /**
  * ReactMarkdown component map — editorial prose style.
@@ -123,8 +124,13 @@ export default function ArticleCard({ article }) {
     if (copyState !== 'idle') return
     setCopyState('copying')
     try {
-      const { content } = await getArticleContent(article.id)
-      await navigator.clipboard.writeText(content)
+      // copyDeferred initiates the clipboard write inside the click gesture so
+      // the content fetch doesn't drop the transient user activation (which
+      // silently blocks the write on Safari/iOS).
+      await copyDeferred(async () => {
+        const { content } = await getArticleContent(article.id)
+        return content
+      })
       setCopyState('copied')
       setTimeout(() => setCopyState('idle'), 2000)
     } catch {
@@ -295,7 +301,7 @@ export default function ArticleCard({ article }) {
                 e.preventDefault()
                 if (deepDiveCopyState !== 'idle') return
                 setDeepDiveCopyState('copied')
-                await navigator.clipboard.writeText(extended)
+                await copyText(extended)
                 setTimeout(() => setDeepDiveCopyState('idle'), 1500)
               }}
               title="Copy deep dive"

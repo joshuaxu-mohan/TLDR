@@ -49,7 +49,6 @@ logger = logging.getLogger(__name__)
 # Bearer token auth
 # ---------------------------------------------------------------------------
 
-from src.config.settings import get_settings
 _API_BEARER_TOKEN: str = get_settings().api_bearer_token.strip()
 
 if not _API_BEARER_TOKEN:
@@ -234,9 +233,6 @@ def _suggest_topics_via_gemini(name: str, description: str) -> list[str]:
     Returns a list of strings, e.g. ["Tech", "AI"].
     Falls back to an empty list if the Gemini call fails (user can pick manually).
     """
-    import os
-    import re
-
     api_key = os.getenv("GEMINI_API_KEY", "")
     if not api_key:
         logger.warning("GEMINI_API_KEY not set — skipping topic suggestion")
@@ -943,7 +939,9 @@ def transcribe_article_on_demand(article_id: int) -> dict[str, Any]:
                 logger.warning("Auto-summarisation after scrape failed: %s", exc)
 
             updated_row = db.get_article_by_id(article_id)
-            response = _article_dict(updated_row, include_content=False) if updated_row else {}
+            # include_content=True so the frontend can update its in-memory
+            # article (raw transcript display + copy button) without a refetch.
+            response = _article_dict(updated_row, include_content=True) if updated_row else {}
             response["audio_seconds"] = None
             response["word_count"] = word_count
             return response
@@ -982,7 +980,9 @@ def transcribe_article_on_demand(article_id: int) -> dict[str, Any]:
         logger.warning("Auto-summarisation after transcription failed: %s", exc)
 
     updated_row = db.get_article_by_id(article_id)
-    response = _article_dict(updated_row, include_content=False) if updated_row else {}
+    # include_content=True so the frontend can update its in-memory article
+    # (raw transcript display + copy button) without a refetch.
+    response = _article_dict(updated_row, include_content=True) if updated_row else {}
     response["audio_seconds"] = result.get("audio_seconds")
     response["word_count"] = result.get("word_count")
     return response
@@ -1303,11 +1303,44 @@ async def whatsapp_webhook(request: Request) -> PlainTextResponse:
     """
     Receive incoming WhatsApp messages from Twilio and dispatch on-demand replies.
 
-    Twilio POSTs form-encoded data.  The handler in whatsapp.py decides what
-    to reply.  We always return an empty TwiML 200 response so Twilio does not
-    retry the webhook.
+    Twilio POSTs form-encoded data signed with an X-Twilio-Signature header.
+    The signature is validated against TWILIO_AUTH_TOKEN before any field is
+    trusted, so the endpoint cannot be driven by forged requests (which could
+    otherwise make the bot send WhatsApp messages to an attacker-controlled
+    number).  We return an empty TwiML 200 on success so Twilio does not retry.
     """
     form = await request.form()
+
+    # --- Validate the Twilio signature before trusting any field ---
+    auth_token = (_settings.twilio_auth_token or "").strip()
+    if not auth_token:
+        logger.warning(
+            "WhatsApp webhook called but TWILIO_AUTH_TOKEN is not set — "
+            "cannot verify request authenticity; rejecting."
+        )
+        return PlainTextResponse(status_code=403, content="forbidden")
+
+    from twilio.request_validator import RequestValidator
+    validator = RequestValidator(auth_token)
+
+    # Reconstruct the public URL Twilio signed, honouring proxy / tunnel headers
+    # (Twilio webhooks are typically fronted by ngrok or a reverse proxy, so the
+    # scheme/host uvicorn sees differs from what Twilio used to compute the hash).
+    proto = request.headers.get("X-Forwarded-Proto", request.url.scheme)
+    host = (
+        request.headers.get("X-Forwarded-Host")
+        or request.headers.get("Host")
+        or request.url.netloc
+    )
+    signed_url = f"{proto}://{host}{request.url.path}"
+    if request.url.query:
+        signed_url = f"{signed_url}?{request.url.query}"
+
+    signature = request.headers.get("X-Twilio-Signature", "")
+    if not validator.validate(signed_url, dict(form), signature):
+        logger.warning("WhatsApp webhook signature validation failed (url=%s)", signed_url)
+        return PlainTextResponse(status_code=403, content="forbidden")
+
     from_number = str(form.get("From", "")).replace("whatsapp:", "")
     body = str(form.get("Body", "")).strip()
 
@@ -1363,7 +1396,11 @@ if _FRONTEND_DIR.is_dir():
         """
         if path.startswith("api/") or path == "api":
             raise HTTPException(status_code=404, detail=f"API route not found: /{path}")
-        file_path = _FRONTEND_DIR / path
-        if file_path.is_file():
-            return FileResponse(file_path)
+        # Path-traversal guard: resolve the requested path and only serve it if
+        # it stays inside dist/.  A crafted path like '../../etc/passwd' resolves
+        # outside _FRONTEND_DIR and falls through to index.html instead.
+        candidate = (_FRONTEND_DIR / path).resolve()
+        frontend_root = _FRONTEND_DIR.resolve()
+        if frontend_root in candidate.parents and candidate.is_file():
+            return FileResponse(candidate)
         return FileResponse(_FRONTEND_DIR / "index.html")

@@ -33,6 +33,10 @@ def _connection() -> Generator[sqlite3.Connection, None, None]:
     row_factory lets callers treat rows as dicts via sqlite3.Row.
     WAL journal mode is set per-connection so concurrent reads do not block writes.
     foreign_keys enforcement is also set per-connection.
+    busy_timeout makes a writer wait (rather than immediately erroring) when the
+    DB is locked — important because the scheduled pipeline and the uvicorn API
+    are separate processes that can both write (e.g. on-demand transcription
+    during a pipeline run).
     """
     path = _db_path()
     conn = sqlite3.connect(path)
@@ -40,6 +44,7 @@ def _connection() -> Generator[sqlite3.Connection, None, None]:
     try:
         conn.execute("PRAGMA journal_mode=WAL")
         conn.execute("PRAGMA foreign_keys=ON")
+        conn.execute("PRAGMA busy_timeout=5000")
         yield conn
         conn.commit()
     except Exception:
@@ -104,6 +109,66 @@ def _run_migrations(conn: sqlite3.Connection) -> None:
             summary_json TEXT    NOT NULL,
             generated_at TEXT    NOT NULL
         )""",
+        # Indexes on common filter / sort / join columns.  Cheap insurance as
+        # the corpus grows, and they speed up ad-hoc analytical queries against
+        # the file (Datasette / DuckDB / raw SQL).
+        "CREATE INDEX IF NOT EXISTS idx_articles_published    ON articles(published_at)",
+        "CREATE INDEX IF NOT EXISTS idx_articles_summarised   ON articles(summarised_at)",
+        "CREATE INDEX IF NOT EXISTS idx_articles_source       ON articles(source_id)",
+        "CREATE INDEX IF NOT EXISTS idx_articles_needs_trans  ON articles(needs_transcription)",
+        "CREATE INDEX IF NOT EXISTS idx_transcription_article ON transcription_log(article_id)",
+
+        # --- Analysis-readiness (all additive; backfilled in the imperative
+        #     section below and maintained by save_article/save_summary/
+        #     save_transcription going forward) ---
+        # Per-article category snapshot (previously only on sources, so
+        # reclassifying a source silently rewrote the category of its history).
+        "ALTER TABLE articles ADD COLUMN content_category TEXT",
+        # Derived metrics so transcript length / listening time / cost are
+        # one-line GROUP BYs instead of needing length(content) heuristics.
+        "ALTER TABLE articles ADD COLUMN word_count INTEGER",
+        "ALTER TABLE articles ADD COLUMN duration_seconds REAL",
+        # Topic tags normalised out of the CSV string into a queryable table.
+        """CREATE TABLE IF NOT EXISTS article_topics (
+            article_id INTEGER NOT NULL REFERENCES articles(id) ON DELETE CASCADE,
+            topic      TEXT    NOT NULL,
+            PRIMARY KEY (article_id, topic)
+        )""",
+        "CREATE INDEX IF NOT EXISTS idx_article_topics_topic ON article_topics(topic)",
+        # FTS5 full-text index over title + summary + transcript/body.  External
+        # content table (content='articles') so it shares storage with articles
+        # and is kept in sync by the triggers below.  If this SQLite build lacks
+        # FTS5 the statement raises OperationalError and is skipped gracefully.
+        """CREATE VIRTUAL TABLE IF NOT EXISTS articles_fts USING fts5(
+            title, summary, content,
+            content='articles', content_rowid='id'
+        )""",
+        # NB: the FTS sync triggers are intentionally NOT created here.  They are
+        # created in the imperative section below, AFTER the one-time 'rebuild'
+        # populates the index.  Creating them in this list (which runs before the
+        # backfills) would let the first content UPDATE fire an AFTER UPDATE
+        # 'delete' against an empty external-content index and corrupt it.
+        # Denormalised read-only view: the clean surface for Datasette / DuckDB /
+        # raw SQL analysis.  DROP+CREATE so the definition stays current on
+        # redeploys.  content_category falls back to the source's live value for
+        # any row whose snapshot is still NULL.
+        "DROP VIEW IF EXISTS v_articles",
+        """CREATE VIEW v_articles AS
+        SELECT
+            a.id, a.title, a.url, a.published_at, a.ingested_at, a.summarised_at,
+            a.summary, a.extended_summary, a.topic_tags, a.is_significant,
+            a.needs_transcription, a.word_count, a.duration_seconds,
+            COALESCE(a.content_category, s.content_category) AS content_category,
+            CASE WHEN a.content IS NOT NULL AND length(a.content) > 2500
+                 THEN 1 ELSE 0 END AS is_transcribed,
+            length(a.content) AS content_chars,
+            s.id   AS source_id,
+            s.name AS source_name,
+            s.type AS source_type,
+            s.transcript_priority,
+            s.content_category AS source_content_category
+        FROM articles a
+        JOIN sources s ON s.id = a.source_id""",
     ]
     for sql in migrations:
         try:
@@ -166,6 +231,98 @@ def _run_migrations(conn: sqlite3.Connection) -> None:
           AND summarised_at IS NULL
         """
     )
+
+    # --- Analysis backfills -------------------------------------------------
+    # Idempotent NULL-fills (cheap; only touch rows not yet populated).  New
+    # rows are populated by save_article / save_transcription directly.
+
+    # Per-article category snapshot, copied from the owning source.
+    conn.execute(
+        """
+        UPDATE articles
+        SET content_category = (
+            SELECT s.content_category FROM sources s WHERE s.id = articles.source_id
+        )
+        WHERE content_category IS NULL
+        """
+    )
+
+    # Word count, approximated in SQL for existing rows (space count + 1).
+    conn.execute(
+        """
+        UPDATE articles
+        SET word_count = length(trim(content)) - length(replace(trim(content), ' ', '')) + 1
+        WHERE word_count IS NULL AND content IS NOT NULL AND trim(content) != ''
+        """
+    )
+
+    # Audio duration, recovered from the transcription log where we have it.
+    conn.execute(
+        """
+        UPDATE articles
+        SET duration_seconds = (
+            SELECT tl.audio_seconds FROM transcription_log tl
+            WHERE tl.article_id = articles.id AND tl.audio_seconds > 0
+            ORDER BY tl.id DESC LIMIT 1
+        )
+        WHERE duration_seconds IS NULL
+          AND EXISTS (
+              SELECT 1 FROM transcription_log tl
+              WHERE tl.article_id = articles.id AND tl.audio_seconds > 0
+          )
+        """
+    )
+
+    # One-time: expand the topic_tags CSV into the article_topics junction table.
+    # Kept in sync afterwards by save_article() and save_summary().
+    if not _migration_applied("2026-06-backfill-article-topics"):
+        rows = conn.execute(
+            "SELECT id, topic_tags FROM articles "
+            "WHERE topic_tags IS NOT NULL AND trim(topic_tags) != ''"
+        ).fetchall()
+        for r in rows:
+            for tag in (t.strip() for t in r["topic_tags"].split(",")):
+                if tag:
+                    conn.execute(
+                        "INSERT OR IGNORE INTO article_topics (article_id, topic) VALUES (?, ?)",
+                        (r["id"], tag),
+                    )
+        _record_migration("2026-06-backfill-article-topics")
+
+    # Full-text index.  Populate (one-time 'rebuild' straight from the external
+    # content table) BEFORE creating the sync triggers — see the note in the
+    # migrations list.  The triggers (idempotent) maintain it on every write
+    # thereafter.  All backfill UPDATEs above run before this point, so on the
+    # first migration run no trigger fires against the not-yet-built index.
+    fts_available = True
+    if not _migration_applied("2026-06-backfill-fts"):
+        try:
+            conn.execute("INSERT INTO articles_fts(articles_fts) VALUES('rebuild')")
+        except sqlite3.OperationalError:
+            fts_available = False  # FTS5 not compiled into this SQLite build
+        _record_migration("2026-06-backfill-fts")
+
+    if fts_available:
+        for _trigger_sql in (
+            """CREATE TRIGGER IF NOT EXISTS articles_fts_ai AFTER INSERT ON articles BEGIN
+                INSERT INTO articles_fts(rowid, title, summary, content)
+                VALUES (new.id, new.title, new.summary, new.content);
+            END""",
+            """CREATE TRIGGER IF NOT EXISTS articles_fts_ad AFTER DELETE ON articles BEGIN
+                INSERT INTO articles_fts(articles_fts, rowid, title, summary, content)
+                VALUES ('delete', old.id, old.title, old.summary, old.content);
+            END""",
+            """CREATE TRIGGER IF NOT EXISTS articles_fts_au AFTER UPDATE ON articles BEGIN
+                INSERT INTO articles_fts(articles_fts, rowid, title, summary, content)
+                VALUES ('delete', old.id, old.title, old.summary, old.content);
+                INSERT INTO articles_fts(rowid, title, summary, content)
+                VALUES (new.id, new.title, new.summary, new.content);
+            END""",
+        ):
+            try:
+                conn.execute(_trigger_sql)
+            except sqlite3.OperationalError:
+                pass
 
 
 def init_db() -> None:
@@ -420,6 +577,27 @@ def get_all_sources() -> list[sqlite3.Row]:
 # Articles
 # ---------------------------------------------------------------------------
 
+def _sync_article_topics(
+    conn: sqlite3.Connection, article_id: int, topic_tags: Optional[str]
+) -> None:
+    """
+    Mirror an article's CSV topic_tags into the article_topics junction table.
+
+    Deletes the article's existing topic rows and reinserts from the CSV so the
+    junction table always reflects the current tags.  Operates on the passed
+    connection so it participates in the caller's transaction.
+    """
+    conn.execute("DELETE FROM article_topics WHERE article_id = ?", (article_id,))
+    if not topic_tags:
+        return
+    for tag in (t.strip() for t in topic_tags.split(",")):
+        if tag:
+            conn.execute(
+                "INSERT OR IGNORE INTO article_topics (article_id, topic) VALUES (?, ?)",
+                (article_id, tag),
+            )
+
+
 def save_article(
     source_id: int,
     title: str,
@@ -429,6 +607,8 @@ def save_article(
     audio_url: Optional[str] = None,
     needs_transcription: bool = False,
     topic_tags: Optional[str] = None,
+    content_category: Optional[str] = None,
+    duration_seconds: Optional[float] = None,
 ) -> Optional[int]:
     """
     Persist a single ingested article and return its new row id.
@@ -447,23 +627,28 @@ def save_article(
     """
     ingested_at = datetime.now(UTC).isoformat()
     published_str = published_at.isoformat() if published_at else None
+    word_count = len(content.split()) if content else None
 
     with _connection() as conn:
         cursor = conn.execute(
             """
             INSERT OR IGNORE INTO articles
                 (source_id, title, url, content, published_at, ingested_at,
-                 audio_url, needs_transcription, topic_tags)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                 audio_url, needs_transcription, topic_tags,
+                 content_category, word_count, duration_seconds)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (source_id, title, url, content, published_str, ingested_at,
-             audio_url, int(needs_transcription), topic_tags),
+             audio_url, int(needs_transcription), topic_tags,
+             content_category, word_count, duration_seconds),
         )
         if cursor.lastrowid == 0:
             logger.debug("Duplicate article skipped: %s", url)
             return None
-        logger.debug("Saved article id=%d: %s", cursor.lastrowid, title)
-        return cursor.lastrowid
+        article_id = cursor.lastrowid
+        _sync_article_topics(conn, article_id, topic_tags)
+        logger.debug("Saved article id=%d: %s", article_id, title)
+        return article_id
 
 
 def get_unsummarised_articles() -> list[sqlite3.Row]:
@@ -520,6 +705,7 @@ def save_summary(
         )
         if cursor.rowcount == 0:
             raise RuntimeError(f"No article found with id={article_id}")
+        _sync_article_topics(conn, article_id, tags_str)
         logger.debug("Saved summary for article id=%d", article_id)
 
 
@@ -706,6 +892,82 @@ def get_articles_filtered(
 
 
 # ---------------------------------------------------------------------------
+# Full-text search & analysis helpers
+# ---------------------------------------------------------------------------
+
+def _fts_quote(query: str) -> str:
+    """
+    Turn a free-text query into a safe FTS5 MATCH expression.
+
+    Each whitespace-separated token is wrapped in double quotes (internal quotes
+    doubled) so FTS5 treats it as a literal term rather than interpreting
+    operators like AND / OR / NEAR / * / (.  Tokens are implicitly ANDed.
+    """
+    quoted = ['"' + tok.replace('"', '""') + '"' for tok in query.split() if tok]
+    return " ".join(quoted)
+
+
+def search_articles(query: str, limit: int = 50) -> list[sqlite3.Row]:
+    """
+    Full-text search over article title, summary, and transcript/body via FTS5.
+
+    Returns article rows (joined with source info) ordered by bm25 relevance,
+    best first.  An empty/whitespace query returns [].  Falls back to a LIKE
+    scan if FTS5 is unavailable in this SQLite build.
+    """
+    q = (query or "").strip()
+    if not q:
+        return []
+    with _connection() as conn:
+        try:
+            return conn.execute(
+                """
+                SELECT a.*, s.name AS source_name, s.type AS source_type,
+                       s.content_category, s.transcript_priority
+                FROM articles_fts f
+                JOIN articles a ON a.id = f.rowid
+                JOIN sources  s ON s.id = a.source_id
+                WHERE articles_fts MATCH ?
+                ORDER BY bm25(articles_fts)
+                LIMIT ?
+                """,
+                (_fts_quote(q), limit),
+            ).fetchall()
+        except sqlite3.OperationalError:
+            term = f"%{q}%"
+            return conn.execute(
+                """
+                SELECT a.*, s.name AS source_name, s.type AS source_type,
+                       s.content_category, s.transcript_priority
+                FROM articles a
+                JOIN sources s ON s.id = a.source_id
+                WHERE a.title LIKE ? OR a.summary LIKE ? OR a.content LIKE ?
+                ORDER BY a.published_at DESC
+                LIMIT ?
+                """,
+                (term, term, term, limit),
+            ).fetchall()
+
+
+def get_topic_counts() -> list[sqlite3.Row]:
+    """
+    Return (topic, article_count) across all articles, most frequent first.
+
+    Reads the normalised article_topics table — the kind of aggregate the old
+    CSV topic_tags column could not answer without a delimiter trick.
+    """
+    with _connection() as conn:
+        return conn.execute(
+            """
+            SELECT topic, COUNT(*) AS article_count
+            FROM article_topics
+            GROUP BY topic
+            ORDER BY article_count DESC, topic ASC
+            """
+        ).fetchall()
+
+
+# ---------------------------------------------------------------------------
 # Transcription
 # ---------------------------------------------------------------------------
 
@@ -803,14 +1065,15 @@ def save_transcription(article_id: int, transcript: str) -> None:
     becomes eligible for AI summarisation on the next summariser run.
     Raises RuntimeError if no row with that id exists.
     """
+    word_count = len(transcript.split()) if transcript else None
     with _connection() as conn:
         cursor = conn.execute(
             """
             UPDATE articles
-            SET content = ?, needs_transcription = 0
+            SET content = ?, needs_transcription = 0, word_count = ?
             WHERE id = ?
             """,
-            (transcript, article_id),
+            (transcript, word_count, article_id),
         )
         if cursor.rowcount == 0:
             raise RuntimeError(f"No article found with id={article_id}")

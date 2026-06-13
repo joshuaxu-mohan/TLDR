@@ -34,8 +34,8 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-from src.ingestors.base import IngestResult
-from src.storage import db
+from src.ingestors.base import IngestResult  # noqa: E402 — must come after load_dotenv
+from src.storage import db  # noqa: E402 — must come after load_dotenv
 
 logger = logging.getLogger(__name__)
 
@@ -250,6 +250,7 @@ def ingest_podcasts(since_dt: Optional[datetime] = None) -> list[IngestResult]:
         audio_url: str = ep.get("audioUrl") or ""
         date_published = _parse_date(ep.get("datePublished"))
         description: str = ep.get("description") or ""
+        duration = ep.get("duration")  # seconds, per Taddy; may be None
 
         series = ep.get("podcastSeries") or {}
         series_uuid: str = series.get("uuid") or ""
@@ -295,6 +296,9 @@ def ingest_podcasts(since_dt: Optional[datetime] = None) -> list[IngestResult]:
             else "always"
         )
         default_topics: Optional[str] = source["default_topics"]
+        content_category: Optional[str] = (
+            source["content_category"] if "content_category" in source.keys() else None
+        )
 
         if not audio_url:
             logger.warning("[%s] Episode has no audioUrl: %s", source_name, title)
@@ -352,6 +356,8 @@ def ingest_podcasts(since_dt: Optional[datetime] = None) -> list[IngestResult]:
             audio_url=audio_url,
             needs_transcription=needs_transcription,
             topic_tags=default_topics,
+            content_category=content_category,
+            duration_seconds=duration,
         )
 
         if article_id is None:

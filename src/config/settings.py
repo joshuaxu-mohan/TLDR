@@ -60,6 +60,10 @@ class Settings(BaseSettings):
     # CORS allowed origins for the web API (comma-separated)
     cors_origins: str = "http://localhost:5173,http://localhost:3000"
 
+    # Bearer token protecting write endpoints (POST/PATCH/DELETE).
+    # Empty string disables auth — write endpoints become unprotected.
+    api_bearer_token: str = ""
+
 
 @lru_cache(maxsize=1)
 def get_settings() -> Settings:

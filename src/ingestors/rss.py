@@ -243,6 +243,11 @@ def ingest_substacks(since_dt: Optional[datetime] = None) -> list[IngestResult]:
                 content=result.content,
                 published_at=result.published_at,
                 topic_tags=source["default_topics"],
+                content_category=(
+                    source["content_category"]
+                    if "content_category" in source.keys()
+                    else None
+                ),
             )
             if article_id is None:
                 logger.debug("[%s] Duplicate skipped: %s", name, result.url)

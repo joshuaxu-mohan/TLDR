@@ -24,6 +24,7 @@ from typing import Any, Optional
 from dotenv import load_dotenv
 from google import genai
 from google.genai import errors as genai_errors
+from google.genai import types
 
 load_dotenv()
 
@@ -88,6 +89,34 @@ this schema exactly:
   ]
 }
 """
+
+
+# Structured-output schema for per-article summarisation.
+# Forcing JSON mode (response_mime_type + schema) makes Gemini reliably return
+# parseable JSON in the exact shape we expect, instead of occasionally emitting
+# prose, markdown-fenced JSON, or truncated objects that silently lose a batch.
+_SUMMARY_RESPONSE_SCHEMA = types.Schema(
+    type=types.Type.OBJECT,
+    required=["articles"],
+    properties={
+        "articles": types.Schema(
+            type=types.Type.ARRAY,
+            items=types.Schema(
+                type=types.Type.OBJECT,
+                required=["id", "summary", "topic_tags", "is_significant"],
+                properties={
+                    "id": types.Schema(type=types.Type.INTEGER),
+                    "summary": types.Schema(type=types.Type.STRING),
+                    "topic_tags": types.Schema(
+                        type=types.Type.ARRAY,
+                        items=types.Schema(type=types.Type.STRING),
+                    ),
+                    "is_significant": types.Schema(type=types.Type.BOOLEAN),
+                },
+            ),
+        ),
+    },
+)
 
 
 # ---------------------------------------------------------------------------
@@ -189,13 +218,31 @@ def _build_prompt(rows: list[dict[str, Any]]) -> str:
     return "\n---\n".join(parts)
 
 
-def _call_gemini_model(prompt: str, model: str) -> str:
+def _finish_reason(response: Any) -> str:
+    """Best-effort extraction of the first candidate's finish reason for logs."""
+    try:
+        candidates = getattr(response, "candidates", None) or []
+        if candidates:
+            return str(getattr(candidates[0], "finish_reason", "unknown"))
+    except Exception:
+        pass
+    return "unknown"
+
+
+def _call_gemini_model(
+    prompt: str,
+    model: str,
+    config: Optional[types.GenerateContentConfig] = None,
+) -> str:
     """
     Send prompt to a specific Gemini model and return the raw response text.
 
-    Retries on rate-limit (HTTP 429) and server errors (5xx) with exponential
-    backoff.  On 404 (model retired/unavailable) raises immediately without
-    retrying — the caller handles fallback.
+    Retries on rate-limit (HTTP 429), server errors (5xx), and empty/blocked
+    responses with exponential backoff.  On 404 (model retired/unavailable)
+    raises immediately without retrying — the caller handles fallback.
+
+    Pass ``config`` to enable structured JSON output (used by the per-article
+    summariser); leave it None for free-text calls (feed summaries).
     """
     client = _get_client()
 
@@ -204,12 +251,30 @@ def _call_gemini_model(prompt: str, model: str) -> str:
             response = client.models.generate_content(
                 model=model,
                 contents=prompt,
+                config=config,
             )
-            text = response.text
             try:
                 db.log_gemini_call()
             except Exception:
                 pass  # logging failure must never interrupt the call
+            text = response.text
+            if not text:
+                # Empty response — usually a transient hiccup or a safety block.
+                # Retry the transient case; on the last attempt surface the
+                # finish reason so the batch failure is diagnosable.
+                finish = _finish_reason(response)
+                if attempt < _MAX_RETRIES - 1:
+                    delay = _SERVER_ERROR_BASE_DELAY * (2 ** attempt)
+                    logger.warning(
+                        "Gemini returned empty text (%s, finish=%s) — retrying in %ds "
+                        "(attempt %d/%d)",
+                        model, finish, delay, attempt + 1, _MAX_RETRIES,
+                    )
+                    time.sleep(delay)
+                    continue
+                raise RuntimeError(
+                    f"Gemini returned empty response ({model}, finish={finish})"
+                )
             return text
         except genai_errors.ClientError as exc:
             # ClientError covers all 4xx responses
@@ -241,15 +306,20 @@ def _call_gemini_model(prompt: str, model: str) -> str:
     raise RuntimeError(f"Exceeded max retries calling Gemini API ({model})")
 
 
-def _call_gemini(prompt: str) -> str:
+def _call_gemini(
+    prompt: str,
+    config: Optional[types.GenerateContentConfig] = None,
+) -> str:
     """
     Send prompt to Gemini, falling back to _GEMINI_FALLBACK_MODEL on 404.
 
     404 means the primary model has been retired.  All other errors propagate
     after exhausting retries in _call_gemini_model.
+
+    Pass ``config`` to enable structured JSON output for the call.
     """
     try:
-        return _call_gemini_model(prompt, _GEMINI_MODEL)
+        return _call_gemini_model(prompt, _GEMINI_MODEL, config)
     except genai_errors.ClientError as exc:
         code = getattr(exc, "code", None) or getattr(exc, "status_code", 0)
         is_404 = code == 404 or "404" in str(exc) or "NOT_FOUND" in str(exc).upper()
@@ -258,7 +328,7 @@ def _call_gemini(prompt: str) -> str:
                 "Primary model %s returned 404 (retired?) — falling back to %s",
                 _GEMINI_MODEL, _GEMINI_FALLBACK_MODEL,
             )
-            return _call_gemini_model(prompt, _GEMINI_FALLBACK_MODEL)
+            return _call_gemini_model(prompt, _GEMINI_FALLBACK_MODEL, config)
         raise
 
 
@@ -330,7 +400,14 @@ def summarise_new_articles() -> int:
 
         try:
             prompt = _build_prompt(batch)
-            raw = _call_gemini(prompt)
+            # Structured JSON output — forces a parseable response in the exact
+            # schema, eliminating the intermittent prose / fenced / truncated
+            # responses that previously lost an entire batch.
+            config = types.GenerateContentConfig(
+                response_mime_type="application/json",
+                response_schema=_SUMMARY_RESPONSE_SCHEMA,
+            )
+            raw = _call_gemini(prompt, config)
             requests_made += 1
             results = _parse_gemini_response(raw)
         except Exception as exc:
@@ -341,8 +418,15 @@ def summarise_new_articles() -> int:
             )
             continue
 
-        # Index results by id for O(1) lookup
-        results_by_id = {r["id"]: r for r in results}
+        # Index results by id for O(1) lookup.  Coerce ids to int — Gemini
+        # occasionally returns the id as a string even under the schema, which
+        # would otherwise fail the int lookup below and drop the article.
+        results_by_id: dict[int, dict[str, Any]] = {}
+        for r in results:
+            try:
+                results_by_id[int(r["id"])] = r
+            except (KeyError, TypeError, ValueError):
+                continue
 
         for row in batch:
             article_id = row["id"]
