@@ -227,3 +227,31 @@ def send_error_notification(exc: BaseException) -> None:
         _send_raw(token, chat_id, text)
     except Exception as inner:
         logger.warning("Could not send Telegram error notification: %s", inner)
+
+
+def send_staleness_alert(
+    age_hours: float, threshold_hours: float, last_ingested: Optional[str]
+) -> None:
+    """
+    Warn that no new content has been ingested for an unusual length of time.
+
+    Sent by the health-check so a silently stopped pipeline (e.g. the scheduler
+    not firing) is noticed within hours instead of months.  No-op if Telegram
+    credentials are absent; never raises.
+    """
+    token, chat_id = _credentials()
+    if not token or not chat_id:
+        return
+    ts = _e(datetime.now(UTC).strftime("%d %b %Y %H:%M UTC"))
+    last = _e(last_ingested or "never")
+    text = (
+        f"*⚠️ Digest pipeline may be stalled — {ts}*\n\n"
+        f"No new content ingested for *{_e(f'{age_hours:.0f}h')}* "
+        f"\\(threshold {_e(f'{threshold_hours:.0f}h')}\\)\\.\n"
+        f"Last ingest: {last}\n\n"
+        f"Check that the scheduled pipeline is running\\."
+    )
+    try:
+        _send_raw(token, chat_id, text)
+    except Exception as inner:
+        logger.warning("Could not send Telegram staleness alert: %s", inner)

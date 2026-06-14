@@ -967,6 +967,18 @@ def get_topic_counts() -> list[sqlite3.Row]:
         ).fetchall()
 
 
+def get_newest_article_timestamp() -> Optional[str]:
+    """
+    Return the most recent articles.ingested_at (ISO string), or None if empty.
+
+    Used by the staleness health-check to detect a pipeline that has silently
+    stopped ingesting (e.g. the scheduler no longer firing).
+    """
+    with _connection() as conn:
+        row = conn.execute("SELECT MAX(ingested_at) FROM articles").fetchone()
+    return row[0] if row and row[0] else None
+
+
 # ---------------------------------------------------------------------------
 # Transcription
 # ---------------------------------------------------------------------------

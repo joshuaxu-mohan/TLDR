@@ -130,15 +130,22 @@ def _parse_date(date_published: Any) -> Optional[datetime]:
 # Batch episode fetch
 # ---------------------------------------------------------------------------
 
+# getLatestPodcastEpisodes returns at most _TADDY_EPISODES_PER_PAGE episodes per
+# request (the free tier hard-caps this at 25 and serves page 1 only).  Batching
+# keeps the number of API calls within Taddy's monthly request budget.  Newness
+# is decided downstream by first-seen deduplication (save_article on the UNIQUE
+# audio_url), not by what a single response happens to surface, so an episode
+# need only appear in one response across the day's runs to be ingested.
+_TADDY_EPISODES_PER_PAGE = 25
 _TADDY_BATCH_SIZE = 10
 
 
 def _batch_fetch_episodes(uuids: list[str]) -> list[dict[str, Any]]:
     """
-    Fetch the latest episode for each podcast series UUID.
+    Fetch recent episodes for each podcast series UUID.
 
-    UUIDs are split into chunks of _TADDY_BATCH_SIZE to stay well under Taddy's
-    silent 25-result cap.  Each chunk is one GraphQL request.
+    UUIDs are split into chunks of _TADDY_BATCH_SIZE; each chunk is one GraphQL
+    request returning up to _TADDY_EPISODES_PER_PAGE episodes.
 
     Returns a flat list of episode dicts, each augmented with podcastSeries info.
     """
@@ -151,7 +158,7 @@ def _batch_fetch_episodes(uuids: list[str]) -> list[dict[str, Any]]:
         uuid_list = ", ".join(f'"{u}"' for u in chunk)
         query = f"""
         {{
-          getLatestPodcastEpisodes(uuids: [{uuid_list}]) {{
+          getLatestPodcastEpisodes(uuids: [{uuid_list}], limitPerPage: {_TADDY_EPISODES_PER_PAGE}) {{
             uuid
             name
             datePublished
@@ -192,9 +199,11 @@ def ingest_podcasts(since_dt: Optional[datetime] = None) -> list[IngestResult]:
     """
     Discover and save the latest episode for every active Taddy-indexed podcast.
 
-    since_dt — when provided, episodes with a known datePublished before this
-    datetime are skipped.  Episodes with no datePublished are always kept (we
-    cannot know how old they are).  Pass None to ingest everything.
+    since_dt — accepted for signature compatibility but NOT used to filter
+    podcast episodes.  Newness is decided by first-seen deduplication on
+    audio_url (see the per-episode loop), because Taddy surfaces episodes on a
+    lag and publish-date filtering silently dropped never-ingested episodes of
+    low-cadence shows.  RSS and other ingestors still honour their own since_dt.
 
     Sources without a taddy_uuid are silently skipped — they are handled by
     separate ingestors (RSS, custom scrapers).
@@ -275,19 +284,18 @@ def ingest_podcasts(since_dt: Optional[datetime] = None) -> list[IngestResult]:
                 source["name"], series_name, series_uuid, source["name"],
             )
 
-        # Date filter: skip episodes published before the cutoff.
-        # Episodes with no datePublished are kept — we cannot tell how old they are.
-        # Normalise to UTC if the parsed datetime is timezone-naive so that
-        # comparing against the always-aware since_dt doesn't raise TypeError.
+        # Normalise a naive published date to UTC (used for storage and ordering).
         if date_published is not None and date_published.tzinfo is None:
             date_published = date_published.replace(tzinfo=timezone.utc)
-        if since_dt is not None and date_published is not None and date_published < since_dt:
-            logger.debug(
-                "Skipping old episode (published %s < cutoff %s): %s",
-                date_published.isoformat(), since_dt.isoformat(), title,
-            )
-            counts["skipped_old"] += 1
-            continue
+
+        # NOTE: newness is decided by first-seen deduplication on audio_url (a
+        # UNIQUE column — save_article returns None for an already-stored
+        # episode), NOT by publish date.  Taddy surfaces episodes on a lag, so by
+        # the time one first appears its publish date is usually already older
+        # than the cron's narrow --since cutoff; filtering on publish date here
+        # silently dropped never-ingested episodes of low-cadence shows (e.g.
+        # weekly podcasts).  since_dt is therefore intentionally NOT applied to
+        # podcast episodes (RSS and other ingestors still honour it).
 
         source_name: str = source["name"]
         priority: str = (

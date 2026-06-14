@@ -34,6 +34,11 @@ logging.basicConfig(
 )
 logger = logging.getLogger("main")
 
+# Alert if no new content has been ingested for this many hours.  Catches a
+# scheduler/daemon that has silently stopped firing (the failure mode that let
+# ingestion lapse for ~70 days unnoticed) — surfaced via Telegram by health_check().
+_STALENESS_THRESHOLD_HOURS = 36
+
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -244,11 +249,47 @@ def informative_cycle() -> None:
 # Health check
 # ---------------------------------------------------------------------------
 
-def health_check() -> None:
-    """Log a heartbeat so it is clear the process is still alive."""
+def _newest_content_age_hours() -> Optional[float]:
+    """Hours since the most recent article was ingested, or None if the DB is empty."""
+    ts = db.get_newest_article_timestamp()
+    if not ts:
+        return None
+    try:
+        dt = datetime.fromisoformat(ts)
+    except ValueError:
+        return None
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=UTC)
+    return (datetime.now(UTC) - dt).total_seconds() / 3600.0
+
+
+def health_check() -> Optional[float]:
+    """
+    Log a heartbeat and alert via Telegram if ingestion looks stalled.
+
+    Returns the age (hours) of the newest ingested article, or None if the DB is
+    empty, so callers (e.g. --health-check) can set a process exit code.
+    """
     digest_row = db.get_latest_digest()
     last_digest = digest_row["generated_at"] if digest_row else "never"
-    logger.info("Health check OK — last digest: %s", last_digest)
+    age = _newest_content_age_hours()
+    logger.info(
+        "Health check — last digest: %s, newest content age: %s",
+        last_digest, f"{age:.1f}h" if age is not None else "n/a",
+    )
+    if age is not None and age > _STALENESS_THRESHOLD_HOURS:
+        logger.warning(
+            "Content staleness %.0fh exceeds threshold %dh — sending alert",
+            age, _STALENESS_THRESHOLD_HOURS,
+        )
+        try:
+            from src.delivery.telegram import send_staleness_alert
+            send_staleness_alert(
+                age, _STALENESS_THRESHOLD_HOURS, db.get_newest_article_timestamp()
+            )
+        except Exception as exc:
+            logger.warning("Staleness alert failed: %s", exc)
+    return age
 
 
 # ---------------------------------------------------------------------------
@@ -304,10 +345,21 @@ def main() -> None:
         action="store_true",
         help="Disable the date filter entirely — ingest all available content regardless of publish date.",
     )
+    parser.add_argument(
+        "--health-check",
+        action="store_true",
+        help="Report ingestion freshness, alert via Telegram if stale, then exit (exit code 1 if stale). For a lightweight monitor task.",
+    )
     args = parser.parse_args()
 
     logger.info("Initialising database")
     db.init_db()
+
+    # Lightweight monitor mode: report ingestion freshness and exit.  Does not
+    # seed or run the pipeline.  Exit code 1 signals "stale" for external monitors.
+    if args.health_check:
+        age = health_check()
+        sys.exit(1 if (age is not None and age > _STALENESS_THRESHOLD_HOURS) else 0)
 
     # Seed sources from yaml on first run (idempotent — skips existing rows)
     from src.config.loader import seed_from_yaml
