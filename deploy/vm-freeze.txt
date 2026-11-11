@@ -21,7 +21,7 @@ docstring_parser==0.17.0
 fastapi==0.135.3
 feedparser==6.0.12
 frozenlist==1.8.0
-google-auth=<REDACTED>
+google-auth==2.49.1
 google-genai==1.70.0
 groq==1.1.2
 h11==0.16.0

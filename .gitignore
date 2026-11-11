@@ -37,3 +37,12 @@ node_modules/
 .cache
 .cache-*
 scripts/.spotify_cache
+
+# Local only: personal Claude Code settings and regenerated script outputs
+.claude/settings.local.json
+scripts/*.csv
+scripts/spotify_podcasts.yaml
+scripts/taddy_*.json
+scripts/*_out.txt
+scripts/*_err.txt
+frontend/build_*.txt
