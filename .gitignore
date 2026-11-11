@@ -1,6 +1,7 @@
 # Secrets and local config
 .env
 .env.*
+!.env.example
 CLAUDE.local.md
 
 # Python
@@ -8,6 +9,8 @@ __pycache__/
 *.pyc
 .mypy_cache/
 .pytest_cache/
+.venv/
+venv/
 
 # Data and logs (contain PII / large files)
 data/
@@ -26,6 +29,7 @@ logs/
 
 # Frontend build artefacts and dependencies
 frontend/dist/
+frontend/dist.new/
 frontend/node_modules/
 node_modules/
 

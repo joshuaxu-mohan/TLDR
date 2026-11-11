@@ -13,7 +13,8 @@ Personal content digest pipeline: ingests newsletters and podcasts, transcribes 
 - Episode discovery: Taddy for metadata + audio URLs only (no transcript fetches)
 - Podcast scrapers: 9 modules in src/ingestors/scrapers/ — see .claude/rules/scrapers.md for details. Groq fallback on any scraper failure.
 - Notifications: Telegram Bot API (one-way, post-pipeline summary to personal chat)
-- Deployment: Windows Task Scheduler (current), Oracle Cloud ARM VM planned
+- Deployment: Oracle Cloud ARM VM. nginx :80 proxies to uvicorn :8000 (systemd unit); the pipeline runs from crontab. Config of record lives in deploy/
+- API auth is deny-by-default: every request under /api other than GET/HEAD/OPTIONS needs the bearer token; only /api/whatsapp/webhook is exempt (Twilio signature). Never add a per-route allowlist
 
 ## Transcript Priority (two tiers only)
 
@@ -34,7 +35,8 @@ Feed summary generates two segments: NEWS SUMMARY (news sources) and INFORMATIVE
 - Run with scheduler: `python -m src.main --daemon`
 - Ingest only: `python -m src.main --ingest-only`
 - Start server: `uvicorn src.delivery.api:app --host 0.0.0.0 --port 8000`
-- Build frontend: `cd frontend && npm run build && cd ..`
+- Build frontend: `cd frontend && npm run build && cd ..` (needs VITE_API_TOKEN equal to API_BEARER_TOKEN; see frontend/.env.example)
+- Deploy (on the VM): `bash ~/Daily/deploy/deploy.sh` backs up the DB, fast-forwards to origin/main, rebuilds frontend/dist with the token, restarts the API and verifies. Undo: `--rollback`
 - Windows build + serve: `cd C:\Daily\frontend && npm run build && cd C:\Daily && & "C:\Users\xujos\AppData\Local\Python\bin\python.exe" -m uvicorn src.delivery.api:app --host 127.0.0.1 --port 8000`
 
 ## Key Conventions
