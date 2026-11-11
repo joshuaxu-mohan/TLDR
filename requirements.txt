@@ -1,4 +1,4 @@
-# Pinned from the Oracle VM venv (pip freeze, 2026-11-11). Full freeze: deploy/vm-freeze.txt
+# Pinned from the Oracle VM venv (pip freeze, 2026-11-11, after security upgrades). Full freeze: deploy/vm-freeze.txt
 feedparser==6.0.12
 spotipy==2.26.0
 pyyaml==6.0.3
@@ -8,7 +8,7 @@ requests-cache==1.3.1
 anthropic==0.88.0
 google-genai==1.70.0
 python-dotenv==1.2.2
-pydantic-settings==2.13.1
+pydantic-settings==2.16.2
 fastapi==0.135.3
 uvicorn==0.42.0
 aiofiles==25.1.0
@@ -16,7 +16,7 @@ twilio==9.10.4
 apscheduler==3.11.2
 groq==1.1.2
 pdfplumber==0.11.9
-pytest==9.0.2
+pytest==9.2.0
 responses==0.26.0
 ruff==0.15.8
 mypy==1.20.0
