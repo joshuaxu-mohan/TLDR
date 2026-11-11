@@ -23,8 +23,12 @@ Non-API:
 
 All database access goes through src/storage/db.py.
 CORS is enabled for origins listed in settings.cors_origins.
+Auth: every request under /api other than GET, HEAD and OPTIONS needs
+Authorization: Bearer <API_BEARER_TOKEN>. Only /api/whatsapp/webhook is
+exempt (it checks the Twilio signature). No token configured means 503.
 """
 
+import hmac
 import json
 import logging
 import os
@@ -46,42 +50,44 @@ from src.storage import db
 logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
-# Bearer token auth
+# Bearer token auth (deny by default)
 # ---------------------------------------------------------------------------
+# Every request under /api other than GET, HEAD and OPTIONS needs a valid
+# bearer token. The check uses the method and the concrete request path, never
+# route templates, so a new write route is protected without being listed.
+# Exemptions are exact paths and must authenticate some other way.
 
 _API_BEARER_TOKEN: str = get_settings().api_bearer_token.strip()
 
+_SAFE_METHODS: frozenset[str] = frozenset({"GET", "HEAD", "OPTIONS"})
+
+_AUTH_EXEMPT_PATHS: frozenset[str] = frozenset({
+    "/api/whatsapp/webhook",  # handler verifies X-Twilio-Signature
+})
+
 if not _API_BEARER_TOKEN:
-    logger.warning(
-        "API_BEARER_TOKEN is not set — write endpoints are unprotected. "
-        "Set the variable in .env to enable authentication."
+    logger.error(
+        "API_BEARER_TOKEN is not set: every non-GET request under /api will be "
+        "refused with 503. Set the variable in .env to enable writes."
     )
-
-_PROTECTED_ROUTES: set[tuple[str, str]] = {
-    ("POST",   "/api/summarise-page"),
-    ("POST",   "/api/feed-summary/refresh"),
-    ("POST",   "/api/sources"),
-    ("PATCH",  "/api/sources/{source_id}"),
-    ("DELETE", "/api/sources/{source_id}"),
-}
-
-# Prefix patterns used for dynamic-segment routes (articles/{id}/...)
-_PROTECTED_PREFIXES: list[tuple[str, str]] = [
-    ("POST",   "/api/articles/"),
-]
 
 
 def _is_protected(method: str, path: str) -> bool:
-    """Return True if the request requires a valid bearer token."""
-    if not _API_BEARER_TOKEN:
+    """Return True if the request needs a valid bearer token."""
+    if method.upper() in _SAFE_METHODS:
         return False
-    key = (method.upper(), path)
-    if key in _PROTECTED_ROUTES:
-        return True
-    for m, prefix in _PROTECTED_PREFIXES:
-        if method.upper() == m and path.startswith(prefix):
-            return True
-    return False
+    if path != "/api" and not path.startswith("/api/"):
+        return False
+    return path not in _AUTH_EXEMPT_PATHS
+
+
+def _has_valid_token(auth_header: str) -> bool:
+    """Constant-time check of an 'Authorization: Bearer <token>' header."""
+    scheme, _, credentials = auth_header.partition(" ")
+    credentials = credentials.strip()
+    if scheme.lower() != "bearer" or not credentials:
+        return False
+    return hmac.compare_digest(credentials.encode(), _API_BEARER_TOKEN.encode())
 
 
 # ---------------------------------------------------------------------------
@@ -115,11 +121,17 @@ app.add_middleware(
 
 @app.middleware("http")
 async def bearer_auth_middleware(request: Request, call_next):
-    if _is_protected(request.method, request.url.path):
-        auth_header = request.headers.get("Authorization", "")
-        token = auth_header.removeprefix("Bearer ").strip()
-        if token != _API_BEARER_TOKEN:
-            return JSONResponse(status_code=401, content={"error": "unauthorized"})
+    # scope["path"] is the percent-decoded path the router matches on, so
+    # encoded variants (/%61pi/..., %2F) cannot dodge the prefix check.
+    if _is_protected(request.method, request.scope["path"]):
+        if not _API_BEARER_TOKEN:
+            return JSONResponse(status_code=503, content={"error": "auth not configured"})
+        if not _has_valid_token(request.headers.get("Authorization", "")):
+            return JSONResponse(
+                status_code=401,
+                content={"error": "unauthorized"},
+                headers={"WWW-Authenticate": "Bearer"},
+            )
     return await call_next(request)
 
 

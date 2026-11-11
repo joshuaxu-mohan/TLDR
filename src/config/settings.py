@@ -60,8 +60,9 @@ class Settings(BaseSettings):
     # CORS allowed origins for the web API (comma-separated)
     cors_origins: str = "http://localhost:5173,http://localhost:3000"
 
-    # Bearer token protecting write endpoints (POST/PATCH/DELETE).
-    # Empty string disables auth — write endpoints become unprotected.
+    # Bearer token required on every non-GET/HEAD/OPTIONS request under /api
+    # (except the Twilio-signed WhatsApp webhook). Empty string fails closed:
+    # those requests get 503. Must equal VITE_API_TOKEN in the frontend build.
     api_bearer_token: str = ""
 
 
