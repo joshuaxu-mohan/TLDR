@@ -1,0 +1,14 @@
+[Unit]
+Description=Daily Digest FastAPI
+After=network.target
+
+[Service]
+User=ubuntu
+WorkingDirectory=/home/ubuntu/Daily
+ExecStart=/home/ubuntu/Daily/venv/bin/uvicorn src.delivery.api:app --host 127.0.0.1 --port 8000
+Restart=always
+RestartSec=5
+EnvironmentFile=/home/ubuntu/Daily/.env
+
+[Install]
+WantedBy=multi-user.target
