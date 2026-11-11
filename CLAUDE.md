@@ -14,6 +14,7 @@ Personal content digest pipeline: ingests newsletters and podcasts, transcribes 
 - Podcast scrapers: 9 modules in src/ingestors/scrapers/ — see .claude/rules/scrapers.md for details. Groq fallback on any scraper failure.
 - Notifications: Telegram Bot API (one-way, post-pipeline summary to personal chat)
 - Deployment: Oracle Cloud ARM VM. nginx :80 proxies to uvicorn :8000 (systemd unit); the pipeline runs from crontab. Config of record lives in deploy/
+- Ops on the VM: nightly verified DB backup at 03:15 UTC (deploy/backup.sh, 14 days in ~/backups), Telegram staleness check every 6 hours (--health-check), app logs rotated by deploy/logrotate/daily-digest
 - API auth is deny-by-default: every request under /api other than GET/HEAD/OPTIONS needs the bearer token; only /api/whatsapp/webhook is exempt (Twilio signature). Never add a per-route allowlist
 
 ## Transcript Priority (two tiers only)

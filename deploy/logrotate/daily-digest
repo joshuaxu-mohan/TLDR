@@ -1,0 +1,14 @@
+# Rotation for the app's own logs (cron.log, backup.log and ad-hoc run logs).
+# Install on the VM: sudo install -m 644 ~/Daily/deploy/logrotate/daily-digest /etc/logrotate.d/daily-digest
+# Needs the logrotate package (it was missing from the VM image until November 2026).
+/home/ubuntu/Daily/logs/*.log {
+    su ubuntu ubuntu
+    weekly
+    maxsize 20M
+    rotate 8
+    compress
+    delaycompress
+    missingok
+    notifempty
+    copytruncate
+}
