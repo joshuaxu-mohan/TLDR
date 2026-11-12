@@ -40,5 +40,5 @@
 ## Deployment
 
 - Pipeline runs on the Oracle Cloud ARM VM from crontab; deploy/crontab.txt is the schedule of record
-- Windows Python: `C:\Users\xujos\AppData\Local\Python\bin\python.exe`
+- Windows Python (PowerShell): `$env:LOCALAPPDATA\Python\bin\python.exe`
 - Start server: `uvicorn src.delivery.api:app --host 0.0.0.0 --port 8000` (no `--reload` on Windows — causes WinError 6)

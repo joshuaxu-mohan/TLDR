@@ -40,6 +40,7 @@ scripts/.spotify_cache
 
 # Local only: personal Claude Code settings and regenerated script outputs
 .claude/settings.local.json
+.claude/launch.json
 scripts/*.csv
 scripts/spotify_podcasts.yaml
 scripts/taddy_*.json

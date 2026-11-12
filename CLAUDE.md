@@ -38,7 +38,7 @@ Feed summary generates two segments: NEWS SUMMARY (news sources) and INFORMATIVE
 - Start server: `uvicorn src.delivery.api:app --host 0.0.0.0 --port 8000`
 - Build frontend: `cd frontend && npm run build && cd ..` (needs VITE_API_TOKEN equal to API_BEARER_TOKEN; see frontend/.env.example)
 - Deploy (on the VM): `bash ~/Daily/deploy/deploy.sh` backs up the DB, fast-forwards to origin/main, rebuilds frontend/dist with the token, restarts the API and verifies. Undo: `--rollback`
-- Windows build + serve: `cd C:\Daily\frontend && npm run build && cd C:\Daily && & "C:\Users\xujos\AppData\Local\Python\bin\python.exe" -m uvicorn src.delivery.api:app --host 127.0.0.1 --port 8000`
+- Windows build + serve: `cd C:\Daily\frontend && npm run build && cd C:\Daily && & "$env:LOCALAPPDATA\Python\bin\python.exe" -m uvicorn src.delivery.api:app --host 127.0.0.1 --port 8000`
 
 ## Key Conventions
 
